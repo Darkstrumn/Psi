@@ -12,9 +12,9 @@ package vazkii.psi.client.gui;
 
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
+import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
@@ -30,9 +30,10 @@ import vazkii.arl.network.NetworkHandler;
 import vazkii.arl.network.NetworkMessage;
 import vazkii.psi.api.PsiAPI;
 import vazkii.psi.api.cad.ISocketable;
+import vazkii.psi.api.cad.ISocketableCapability;
 import vazkii.psi.api.cad.ISocketableController;
 import vazkii.psi.client.core.handler.KeybindHandler;
-import vazkii.psi.client.core.helper.PsiRenderHelper;
+import vazkii.psi.api.internal.PsiRenderHelper;
 import vazkii.psi.common.Psi;
 import vazkii.psi.common.core.handler.PlayerDataHandler;
 import vazkii.psi.common.lib.LibResources;
@@ -43,7 +44,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GuiSocketSelect extends GuiScreen {
+public class GuiSocketSelect extends Screen {
 
 	private static final ResourceLocation[] signs = new ResourceLocation[] {
 			new ResourceLocation(String.format(LibResources.GUI_SIGN, 0)),
@@ -70,7 +71,7 @@ public class GuiSocketSelect extends GuiScreen {
 	int controlSlot;
 
 	ItemStack socketableStack;
-	ISocketable socketable;
+	ISocketableCapability socketable;
 	List<Integer> slots;
 
 	public GuiSocketSelect(ItemStack stack) {
@@ -79,7 +80,7 @@ public class GuiSocketSelect extends GuiScreen {
 		controllerStack = ItemStack.EMPTY;
 		socketableStack = ItemStack.EMPTY;
 		
-		if(stack.getItem() instanceof ISocketable)
+		if(ISocketableCapability.isSocketable(stack))
 			setSocketable(stack);
 		else if(stack.getItem() instanceof ISocketableController) {
 			controllerStack = stack;
@@ -99,10 +100,10 @@ public class GuiSocketSelect extends GuiScreen {
 			return;
 
 		socketableStack = stack;
-		socketable = (ISocketable) stack.getItem();
+		socketable = ISocketableCapability.socketable(stack);
 
 		for(int i = 0; i < ISocketable.MAX_SLOTS; i++)
-			if(socketable.showSlotInRadialMenu(stack, i))
+			if(socketable.showSlotInRadialMenu(i))
 				slots.add(i);
 	}
 
@@ -137,6 +138,8 @@ public class GuiSocketSelect extends GuiScreen {
 		for(int seg = 0; seg < segments; seg++) {
 			boolean mouseInSector = degPer * seg < angle && angle < degPer * (seg + 1);
 			float radius = Math.max(0F, Math.min((timeIn + partialTicks - seg * 6F / segments) * 40F, maxRadius));
+			if (mouseInSector)
+				radius *= 1.025f;
 
 			int gs = 0x40;
 			if(seg % 2 == 0)
@@ -158,10 +161,11 @@ public class GuiSocketSelect extends GuiScreen {
 					r = PsiRenderHelper.r(color);
 					g = PsiRenderHelper.g(color);
 					b = PsiRenderHelper.b(color);
-				}
+				} else
+					r = g = b = 0xFF;
 			}
 
-			for(float i = 0; i < degPer + step; i += step) {
+			for(float i = 0; i < degPer + step / 2; i += step) {
 				float rad = i + seg * degPer;
 				float xp = x + MathHelper.cos(rad) * radius;
 				float yp = y + MathHelper.sin(rad) * radius;
@@ -179,11 +183,14 @@ public class GuiSocketSelect extends GuiScreen {
 		for(int seg = 0; seg < segments; seg++) {
 			boolean mouseInSector = degPer * seg < angle && angle < degPer * (seg + 1);
 			float radius = Math.max(0F, Math.min((timeIn + partialTicks - seg * 6F / segments) * 40F, maxRadius));
+			if (mouseInSector)
+				radius *= 1.025f;
+
 			float rad = (seg + 0.5f) * degPer;
 			float xp = x + MathHelper.cos(rad) * radius;
 			float yp = y + MathHelper.sin(rad) * radius;
 
-			ItemStack stack = socketable.getBulletInSocket(socketableStack, seg);
+			ItemStack stack = socketable.getBulletInSocket(seg);
 			if(!stack.isEmpty()) {
 				float xsp = xp - 4;
 				float ysp = yp;

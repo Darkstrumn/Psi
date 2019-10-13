@@ -10,8 +10,10 @@
  */
 package vazkii.psi.api.internal;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import vazkii.psi.api.spell.SpellPiece;
+
+import javax.annotation.Nullable;
 
 public interface IPlayerData {
 
@@ -50,6 +52,12 @@ public interface IPlayerData {
 	int getRegenPerTick();
 
 	/**
+	 * Gets whether or not the player is currently unable to cast spells
+	 * due to overdrawing Psi energy.
+	 */
+	boolean isOverflowed();
+
+	/**
 	 * Deducts the amount of psi given from the player's psi energy.
 	 * This will not check against the available amount. Any extra will be either
 	 * deducted from the player's CAD battery, or deducted as damage.
@@ -57,9 +65,16 @@ public interface IPlayerData {
 	void deductPsi(int psi, int cd, boolean sync, boolean shatter);
 
 	/**
-	 * Gets it the piece group name is unlocked.
+	 * Gets if the piece group name is unlocked.
 	 */
-	boolean isPieceGroupUnlocked(String group);
+	default boolean isPieceGroupUnlocked(String group) {
+		return isPieceGroupUnlocked(group, null);
+	}
+
+	/**
+	 * Gets if the piece and group name are unlocked.
+	 */
+	boolean isPieceGroupUnlocked(String group, @Nullable String piece);
 
 	/**
 	 * Unlocks the given piece group.
@@ -76,7 +91,7 @@ public interface IPlayerData {
 	 * going to write any data here, please ensure it's prefixed with
 	 * your mod ID so stuff doesn't get written over other stuff.
 	 */
-	NBTTagCompound getCustomData();
+	CompoundNBT getCustomData();
 	
 	/**
 	 * Saves the data to the player entity's NBT tags. 

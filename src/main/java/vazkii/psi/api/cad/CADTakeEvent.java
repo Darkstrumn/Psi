@@ -1,9 +1,9 @@
 package vazkii.psi.api.cad;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.eventhandler.Cancelable;
-import net.minecraftforge.fml.common.eventhandler.Event;
+import net.minecraftforge.eventbus.api.Cancelable;
+import net.minecraftforge.eventbus.api.Event;
 
 import javax.annotation.Nullable;
 
@@ -16,49 +16,49 @@ import javax.annotation.Nullable;
 @Cancelable
 public class CADTakeEvent extends Event {
 
-    private final ItemStack cad;
-    private final ITileCADAssembler assembler;
-    private final EntityPlayer player;
+	private final ItemStack cad;
+	private final ITileCADAssembler assembler;
+	private final PlayerEntity player;
 
-    @Nullable
-    private String cancellationMessage = "psimisc.cancelledCADTake";
+	@Nullable
+	private String cancellationMessage = "psimisc.cancelledCADTake";
 
-    private float sound = 0.5f;
+	private float sound = 0.5f;
 
-    public CADTakeEvent(ItemStack cad, ITileCADAssembler assembler, EntityPlayer player) {
-        this.cad = cad;
-        this.assembler = assembler;
-        this.player = player;
-    }
+	public CADTakeEvent(ItemStack cad, ITileCADAssembler assembler, PlayerEntity player) {
+		this.cad = cad;
+		this.assembler = assembler;
+		this.player = player;
+	}
 
-    @Nullable
-    public String getCancellationMessage() {
-        return cancellationMessage;
-    }
+	@Nullable
+	public String getCancellationMessage() {
+		return cancellationMessage;
+	}
 
-    public void setCancellationMessage(@Nullable String cancellationMessage) {
-        this.cancellationMessage = cancellationMessage;
-    }
+	public void setCancellationMessage(@Nullable String cancellationMessage) {
+		this.cancellationMessage = cancellationMessage;
+	}
 
-    public float getSound() {
-        return sound;
-    }
+	public float getSound() {
+		return sound;
+	}
 
-    public void setSound(float sound) {
-        this.sound = sound;
-    }
+	public void setSound(float sound) {
+		this.sound = sound;
+	}
 
-    public ITileCADAssembler getAssembler() {
-        return assembler;
-    }
+	public ITileCADAssembler getAssembler() {
+		return assembler;
+	}
 
-    public ItemStack getCad() {
-        return cad;
-    }
+	public ItemStack getCad() {
+		return cad;
+	}
 
-    public EntityPlayer getPlayer() {
-        return player;
-    }
+	public PlayerEntity getPlayer() {
+		return player;
+	}
 
 
 }

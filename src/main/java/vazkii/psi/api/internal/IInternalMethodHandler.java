@@ -10,12 +10,14 @@
  */
 package vazkii.psi.api.internal;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import vazkii.psi.api.spell.ISpellCache;
-import vazkii.psi.api.spell.ISpellCompiler;
-import vazkii.psi.api.spell.Spell;
-import vazkii.psi.api.spell.SpellContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import vazkii.psi.api.spell.*;
+
+import java.util.List;
 
 public interface IInternalMethodHandler {
 
@@ -23,7 +25,7 @@ public interface IInternalMethodHandler {
 	 * Gets the player data for a given player. Player Data contains info such as the
 	 * player's Psi value or level.
 	 */
-	IPlayerData getDataForPlayer(EntityPlayer player);
+	IPlayerData getDataForPlayer(PlayerEntity player);
 
 	/**
 	 * Gets the texture for the programmer. Used for drawing the arrows in a SpellPiece's
@@ -47,7 +49,19 @@ public interface IInternalMethodHandler {
 	void delayContext(SpellContext context);
 
 	/**
+	 * Sets the crash handler data, in case the spell hard-crashes.
+	 */
+	void setCrashData(CompiledSpell spell, SpellPiece piece);
+
+	@OnlyIn(Dist.CLIENT)
+	void renderTooltip(int x, int y, List<String> tooltipData, int color, int color2);
+
+	/**
 	 * Localizes a string, with correct behavior on both server and client.
 	 */
 	String localize(String key, Object... format);
+
+	ItemStack createDefaultCAD(List<ItemStack> components);
+
+	ItemStack createCAD(ItemStack base, List<ItemStack> components);
 }

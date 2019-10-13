@@ -11,19 +11,19 @@
 package vazkii.psi.client.gui.button;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
+import net.minecraft.client.gui.widget.button.Button;
 import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
+import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import vazkii.psi.api.spell.SpellParam;
 import vazkii.psi.api.spell.SpellPiece;
-import vazkii.psi.client.core.helper.PsiRenderHelper;
+import vazkii.psi.api.internal.PsiRenderHelper;
 import vazkii.psi.client.gui.GuiProgrammer;
 
 import javax.annotation.Nonnull;
 
-public class GuiButtonSideConfig extends GuiButton {
+public class GuiButtonSideConfig extends Button {
 
 	final GuiProgrammer gui;
 	final int gridX;
@@ -47,7 +47,7 @@ public class GuiButtonSideConfig extends GuiButton {
 	}
 
 	public void onClick() {
-		SpellPiece piece = gui.programmer.spell.grid.gridData[gridX][gridY];
+		SpellPiece piece = gui.spell.grid.gridData[gridX][gridY];
 		if(piece == null)
 			return;
 
@@ -67,7 +67,7 @@ public class GuiButtonSideConfig extends GuiButton {
 			int maxY = minY + 8;
 
 			mc.renderEngine.bindTexture(GuiProgrammer.texture);
-			SpellPiece piece = gui.programmer.spell.grid.gridData[gridX][gridY];
+			SpellPiece piece = gui.spell.grid.gridData[gridX][gridY];
 			if(piece == null)
 				return;
 

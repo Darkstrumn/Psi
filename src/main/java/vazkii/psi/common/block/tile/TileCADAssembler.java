@@ -10,10 +10,10 @@
  */
 package vazkii.psi.common.block.tile;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
 import net.minecraft.util.SoundCategory;
 import net.minecraftforge.common.MinecraftForge;
 import vazkii.arl.block.tile.TileSimpleInventory;
@@ -40,11 +40,12 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 	}
 
 	@Override
-	public ItemStack getCachedCAD(EntityPlayer player) {
+	public ItemStack getCachedCAD(PlayerEntity player) {
 		ItemStack cad = cachedCAD;
 		if (cad == null) {
-			if (!getStackForComponent(EnumCADComponent.ASSEMBLY).isEmpty())
-				cad = ItemCAD.makeCAD(inventorySlots.subList(1, 6));
+			ItemStack assembly = getStackForComponent(EnumCADComponent.ASSEMBLY);
+			if (!assembly.isEmpty())
+				cad = ItemCAD.makeCADWithAssembly(assembly, inventorySlots.subList(1, 6));
 			else
 				cad = ItemStack.EMPTY;
 
@@ -96,8 +97,13 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 	}
 
 	@Override
+	public ISocketableCapability getSocketable() {
+		return ISocketableCapability.socketable(getSocketableStack());
+	}
+
+	@Override
 	public boolean setSocketableStack(ItemStack stack) {
-		if (stack.isEmpty() || stack.getItem() instanceof ISocketable) {
+		if (stack.isEmpty() || ISocketableCapability.isSocketable(stack)) {
 			setInventorySlotContents(0, stack);
 			return true;
 		}
@@ -116,13 +122,8 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 
 	@Override
 	public boolean isBulletSlotEnabled(int slot) {
-		ItemStack socketableStack = getSocketableStack();
-		if(!socketableStack.isEmpty() && socketableStack.getItem() instanceof ISocketable) {
-			ISocketable socketable = (ISocketable) socketableStack.getItem();
-			return socketable.isSocketSlotAvailable(socketableStack, slot);
-		}
-
-		return false;
+		ISocketableCapability socketable = getSocketable();
+		return socketable != null && socketable.isSocketSlotAvailable(slot);
 	}
 
 	@Override
@@ -147,7 +148,7 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 			return true;
 
 		if (slot == 0)
-			return stack.getItem() instanceof ISocketable;
+			return ISocketableCapability.isSocketable(stack);
 		else if (slot < 6)
 			return stack.getItem() instanceof ICADComponent &&
 				((ICADComponent) stack.getItem()).getComponentType(stack) == EnumCADComponent.values()[slot - 1];
@@ -156,20 +157,19 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 	}
 
 	@Override
-	public void writeSharedNBT(NBTTagCompound tag) {
+	public void writeSharedNBT(CompoundNBT tag) {
 		super.writeSharedNBT(tag);
 		tag.setInteger("version", 1);
 	}
 
 	@Override
-	public void readSharedNBT(NBTTagCompound tag) {
+	public void readSharedNBT(CompoundNBT tag) {
 		// Migrate old CAD assemblers to the new format
 		if (needsToSyncInventory() && tag.getInteger("version") < 1) {
-			NBTTagList items = tag.getTagList("Items", 10);
+			ListNBT items = tag.getTagList("Items", 10);
 			this.clear();
 
-			ISocketable socketableItem = null;
-			ItemStack socketable = ItemStack.EMPTY;
+			ISocketableCapability socketable = null;
 
 			for(int i = 0; i < items.tagCount(); ++i) {
 				if (i == 0) // Skip the fake CAD slot
@@ -180,10 +180,8 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 				if (i == 6) { // Socketable item
 					setSocketableStack(stack);
 
-					if (!stack.isEmpty() && stack.getItem() instanceof ISocketable) {
-						socketableItem = (ISocketable) stack.getItem();
-						socketable = stack;
-					}
+					if (!stack.isEmpty() && ISocketableCapability.isSocketable(stack))
+						socketable = ISocketableCapability.socketable(stack);
 				} else if (i == 1) // CORE
 					setStackForComponent(EnumCADComponent.CORE, stack);
 				else if (i == 2) // ASSEMBLY
@@ -194,8 +192,8 @@ public class TileCADAssembler extends TileSimpleInventory implements ITileCADAss
 					setStackForComponent(EnumCADComponent.BATTERY, stack);
 				else if (i == 5) // DYE
 					setStackForComponent(EnumCADComponent.DYE, stack);
-				else if (socketableItem != null) // If we've gotten here, the item is a bullet.
-					socketableItem.setBulletInSocket(socketable, i - 7, stack);
+				else if (socketable != null) // If we've gotten here, the item is a bullet.
+					socketable.setBulletInSocket(i - 7, stack);
 			}
 		} else
 			super.readSharedNBT(tag);

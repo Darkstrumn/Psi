@@ -10,16 +10,24 @@
  */
 package vazkii.psi.common.item.tool;
 
+import com.google.common.collect.Multimap;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.arl.item.ItemMod;
 import vazkii.arl.item.ItemModSword;
 import vazkii.psi.api.PsiAPI;
 import vazkii.psi.api.cad.ISocketable;
+import vazkii.psi.api.internal.TooltipHelper;
 import vazkii.psi.api.spell.SpellContext;
 import vazkii.psi.common.core.handler.PlayerDataHandler;
 import vazkii.psi.common.core.handler.PlayerDataHandler.PlayerData;
@@ -37,11 +45,11 @@ public class ItemPsimetalSword extends ItemModSword implements IPsimetalTool, IP
 	}
 
 	@Override
-	public boolean hitEntity(ItemStack itemstack, EntityLivingBase target, @Nonnull EntityLivingBase attacker) {
+	public boolean hitEntity(ItemStack itemstack, LivingEntity target, @Nonnull LivingEntity attacker) {
 		super.hitEntity(itemstack, target, attacker);
 
-		if(attacker instanceof EntityPlayer) {
-			EntityPlayer player = (EntityPlayer) attacker;
+		if(isEnabled(itemstack) && attacker instanceof PlayerEntity) {
+			PlayerEntity player = (PlayerEntity) attacker;
 
 			PlayerData data = PlayerDataHandler.get(player);
 			ItemStack playerCad = PsiAPI.getPlayerCAD(player);
@@ -60,14 +68,46 @@ public class ItemPsimetalSword extends ItemModSword implements IPsimetalTool, IP
 	}
 
 	@Override
+	public Multimap<String, AttributeModifier> getAttributeModifiers(EquipmentSlotType slot, ItemStack stack) {
+		Multimap<String, AttributeModifier> modifiers = super.getAttributeModifiers(slot, stack);
+		if (!isEnabled(stack))
+			modifiers.removeAll(SharedMonsterAttributes.ATTACK_DAMAGE.getName());
+		return modifiers;
+	}
+
+	@Override
+	public void setDamage(ItemStack stack, int damage) {
+		if (damage > stack.getMaxDamage())
+			damage = stack.getItemDamage();
+		super.setDamage(stack, damage);
+	}
+
+	@Override
+	public float getDestroySpeed(ItemStack stack, BlockState state) {
+		if (!isEnabled(stack))
+			return 1;
+		return super.getDestroySpeed(stack, state);
+	}
+
+	@Nonnull
+	@Override
+	public String getTranslationKey(ItemStack stack) {
+		String name = super.getTranslationKey(stack);
+		if (!isEnabled(stack))
+			name += ".broken";
+		return name;
+	}
+
+	@Override
 	public void onUpdate(ItemStack stack, World worldIn, Entity entityIn, int itemSlot, boolean isSelected) {
 		IPsimetalTool.regen(stack, entityIn, isSelected);
 	}
-	
+
+    @OnlyIn(Dist.CLIENT)
 	@Override
 	public void addInformation(ItemStack stack, World playerIn, List<String> tooltip, ITooltipFlag advanced) {
 		String componentName = ItemMod.local(ISocketable.getSocketedItemName(stack, "psimisc.none"));
-		ItemMod.addToTooltip(tooltip, "psimisc.spellSelected", componentName);
+        TooltipHelper.addToTooltip(tooltip, "psimisc.spellSelected", componentName);
 	}
 
 	@Override

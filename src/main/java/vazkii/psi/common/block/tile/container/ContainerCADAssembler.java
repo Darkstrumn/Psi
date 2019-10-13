@@ -10,20 +10,20 @@
  */
 package vazkii.psi.common.block.tile.container;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.entity.player.InventoryPlayer;
-import net.minecraft.inventory.Container;
-import net.minecraft.inventory.EntityEquipmentSlot;
-import net.minecraft.inventory.Slot;
-import net.minecraft.item.ItemArmor;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.container.Container;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.inventory.container.Slot;
+import net.minecraft.item.ArmorItem;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import vazkii.psi.api.cad.EnumCADComponent;
 import vazkii.psi.api.cad.ICADComponent;
-import vazkii.psi.api.cad.ISocketable;
+import vazkii.psi.api.cad.ISocketableCapability;
 import vazkii.psi.api.inventory.InventorySocketable;
-import vazkii.psi.api.spell.ISpellSettable;
+import vazkii.psi.api.spell.ISpellAcceptor;
 import vazkii.psi.common.block.tile.TileCADAssembler;
 import vazkii.psi.common.block.tile.container.slot.InventoryAssemblerOutput;
 import vazkii.psi.common.block.tile.container.slot.SlotCADOutput;
@@ -34,7 +34,7 @@ import javax.annotation.Nonnull;
 
 public class ContainerCADAssembler extends Container {
 
-	private static final EntityEquipmentSlot[] equipmentSlots = new EntityEquipmentSlot[]{EntityEquipmentSlot.HEAD, EntityEquipmentSlot.CHEST, EntityEquipmentSlot.LEGS, EntityEquipmentSlot.FEET};
+	private static final EquipmentSlotType[] equipmentSlots = new EquipmentSlotType[]{EquipmentSlotType.HEAD, EquipmentSlotType.CHEST, EquipmentSlotType.LEGS, EquipmentSlotType.FEET};
 
 	public final TileCADAssembler assembler;
 
@@ -49,8 +49,8 @@ public class ContainerCADAssembler extends Container {
 	private final int hotbarEnd;
 	private final int armorStart;
 
-	public ContainerCADAssembler(EntityPlayer player, TileCADAssembler assembler) {
-		InventoryPlayer playerInventory = player.inventory;
+	public ContainerCADAssembler(PlayerEntity player, TileCADAssembler assembler) {
+		PlayerInventory playerInventory = player.inventory;
 		int playerSize = playerInventory.getSizeInventory();
 
 		this.assembler = assembler;
@@ -95,7 +95,7 @@ public class ContainerCADAssembler extends Container {
 
 		armorStart = inventorySlots.size();
 		for (int armorSlot = 0; armorSlot < 4; armorSlot++) {
-			final EntityEquipmentSlot slot = equipmentSlots[armorSlot];
+			final EquipmentSlotType slot = equipmentSlots[armorSlot];
 
 			addSlotToContainer(new Slot(playerInventory, playerSize - 2 - armorSlot,
 					xs - 27, ys + 18 * armorSlot) {
@@ -109,16 +109,16 @@ public class ContainerCADAssembler extends Container {
 					return !stack.isEmpty() && stack.getItem().isValidArmor(stack, slot, player);
 				}
 
-				@SideOnly(Side.CLIENT)
+				@OnlyIn(Dist.CLIENT)
 				@Override
 				public String getSlotTexture() {
-					return ItemArmor.EMPTY_SLOT_NAMES[slot.getIndex()];
+					return ArmorItem.EMPTY_SLOT_NAMES[slot.getIndex()];
 				}
 			});
 		}
 
 		addSlotToContainer(new Slot(playerInventory, playerSize - 1, 219, 143) {
-			@SideOnly(Side.CLIENT)
+			@OnlyIn(Dist.CLIENT)
 			@Override
 			public String getSlotTexture() {
 				return "minecraft:items/empty_armor_slot_shield";
@@ -127,13 +127,13 @@ public class ContainerCADAssembler extends Container {
 	}
 
 	@Override
-	public boolean canInteractWith(@Nonnull EntityPlayer playerIn) {
+	public boolean canInteractWith(@Nonnull PlayerEntity playerIn) {
 		return assembler.isUsableByPlayer(playerIn);
 	}
 
 	@Nonnull
 	@Override
-	public ItemStack transferStackInSlot(EntityPlayer playerIn, int from) {
+	public ItemStack transferStackInSlot(PlayerEntity playerIn, int from) {
 		ItemStack mergeStack = ItemStack.EMPTY;
 		Slot slot = inventorySlots.get(from);
 
@@ -147,10 +147,10 @@ public class ContainerCADAssembler extends Container {
 					int componentSlot = cadComponentStart + componentType.ordinal();
 					if (!mergeItemStack(stackInSlot, componentSlot, componentSlot + 1, false))
 						return ItemStack.EMPTY;
-				} else if (stackInSlot.getItem() instanceof ISocketable) {
+				} else if (ISocketableCapability.isSocketable(stackInSlot)) {
 					if (!mergeItemStack(stackInSlot, socketableStart, socketableEnd, false))
 						return ItemStack.EMPTY;
-				} else if (stackInSlot.getItem() instanceof ISpellSettable) {
+				} else if (ISpellAcceptor.isAcceptor(stackInSlot)) {
 					if (!mergeItemStack(stackInSlot, bulletStart, bulletEnd, false))
 						return ItemStack.EMPTY;
 				} else if (from < hotbarStart) {
@@ -158,8 +158,8 @@ public class ContainerCADAssembler extends Container {
 						return ItemStack.EMPTY;
 				} else if (!mergeItemStack(stackInSlot, playerStart, playerEnd, false))
 					return ItemStack.EMPTY;
-			} else if (stackInSlot.getItem() instanceof ItemArmor) {
-				ItemArmor armor = (ItemArmor) stackInSlot.getItem();
+			} else if (stackInSlot.getItem() instanceof ArmorItem) {
+				ArmorItem armor = (ArmorItem) stackInSlot.getItem();
 				int armorSlot = armorStart + armor.armorType.getSlotIndex() - 1;
 				if (!mergeItemStack(stackInSlot, armorSlot, armorSlot + 1, true) &&
 						!mergeItemStack(stackInSlot, playerStart, hotbarEnd, true))
@@ -181,7 +181,7 @@ public class ContainerCADAssembler extends Container {
 	}
 
 	@Override
-	public void onContainerClosed(EntityPlayer playerIn) {
+	public void onContainerClosed(PlayerEntity playerIn) {
 		assembler.clearCachedCAD();
 	}
 }

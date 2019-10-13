@@ -8,13 +8,28 @@
  *
  * File Created @ [28/02/2016, 20:28:03 (GMT)]
  */
-package vazkii.psi.common.core.handler.capability;
+package vazkii.psi.api.cad;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.util.INBTSerializable;
 import vazkii.psi.api.internal.Vector3;
 
-public interface ICADData extends INBTSerializable<NBTTagCompound> {
+public interface ICADData extends INBTSerializable<CompoundNBT> {
+	@CapabilityInject(ICADData.class)
+	Capability<ICADData> CAPABILITY = null;
+
+	//TODO: Check this
+	static boolean hasData(ItemStack stack) {
+		return stack.getCapability(CAPABILITY, null) instanceof ICADData;
+	}
+
+	static ICADData data(ItemStack stack) {
+		return (ICADData) stack.getCapability(CAPABILITY, null);
+	}
+
 	int getTime();
 
 	void setTime(int time);
@@ -31,5 +46,5 @@ public interface ICADData extends INBTSerializable<NBTTagCompound> {
 
 	void markDirty(boolean isDirty);
 
-	NBTTagCompound serializeForSynchronization();
+	CompoundNBT serializeForSynchronization();
 }

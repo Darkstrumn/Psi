@@ -1,3 +1,40 @@
+r1.1-77
+*Removed the now irrelevant energy cap message.
+*[API] Added a helper method for detonating.
+*[API] Added DetonationEvent.
+*[API] CADs can now be provided by other items.
+*[API] Increased version number to 15.
+r1.1-76
+*Fixed invalid spells crashing the server.
+*Fixed some tooltips having format errors.
+r1.1-75
+*Added a section including spell data to crash reports in case the mod crashes in the future.
+*Fixed a crash with Random PSIdeas' Flash Ring.
+*Fixed memory returning null vetors.
+*Fixed the Modulus operator returning the first number.
+*[API] Fixed external references.
+r1.1-74
+*Fix spell entities triggering pressure plates.
+*Detonators now actually detonate in a sphere.
+*Psimetal tools and armor no longer break. Instead, they just stop working at 0 durability.
+*Psi tool regen is a lot faster, but is more exploitable in battle.
+*Fix volatile CAD data (time, vector memory, battery) disappearing occasionally.
+r1.1-73
+*Detonators now detonate in a sphere.
+*Entire spells can now be rotated and mirrored with a single keybind. Glorious!
+*Infusion tricks now can infuse all of the materials up to their tier. Ebony and Ivory is slightly more expensive to accommodate this.
+*Search is now sorted by relevance, instead of just by what order things are registered in.
+*Infusion tricks now act in a sphere, instead of a cube.
+*Fix odd motion behavior when adding motion to a player or an entity a player is controlling.
+*Blink tricks now preserve momentum.
+*Fix a crash when particles were size zero.
+*[API] Capabilities are now the method by which ISocketable, IShowPsiBar, ISpellSettable, ISpellContainer, and ISpellImmune are handled.
+*[API] Added PsiRegenEvent
+r1.1-72
+*Added some hooks for addons to do stuff. (WireSegal)
+*Added some more checks to prevent desync. (WireSegal)
+*Allow crafting Psidust with any oredicted redstone dust. (WireSegal)
+*Fixed crashing with Magical Psi. You'll need an updated Magical Psi version too. (WireSegal)
 r1.1-71
 *Added a special case regarding batteries that have -1 overflow (WireSegal)
 *CADs can no longer be used as literal pickaxes (Laike-Endaril)

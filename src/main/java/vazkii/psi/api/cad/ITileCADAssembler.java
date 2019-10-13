@@ -10,28 +10,30 @@
  */
 package vazkii.psi.api.cad;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 
 /**
  * This interface represents a CAD Assembler tile. You probably shouldn't implement this.
  */
 public interface ITileCADAssembler {
-    int getComponentSlot(EnumCADComponent componentType);
+	int getComponentSlot(EnumCADComponent componentType);
 
-    ItemStack getCachedCAD(EntityPlayer player);
+	ItemStack getCachedCAD(PlayerEntity player);
 
-    void clearCachedCAD();
+	void clearCachedCAD();
 
-    ItemStack getStackForComponent(EnumCADComponent componentType);
+	ItemStack getStackForComponent(EnumCADComponent componentType);
 
-    boolean setStackForComponent(EnumCADComponent componentType, ItemStack component);
+	boolean setStackForComponent(EnumCADComponent componentType, ItemStack component);
 
-    ItemStack getSocketableStack();
+	ItemStack getSocketableStack();
 
-    boolean setSocketableStack(ItemStack stack);
+	ISocketableCapability getSocketable();
 
-    void onCraftCAD(ItemStack cad);
+	boolean setSocketableStack(ItemStack stack);
 
-    boolean isBulletSlotEnabled(int slot);
+	void onCraftCAD(ItemStack cad);
+
+	boolean isBulletSlotEnabled(int slot);
 }

@@ -10,14 +10,14 @@
  */
 package vazkii.psi.client.core.handler;
 
-import org.lwjgl.input.Keyboard;
-
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.Hand;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
-import vazkii.psi.api.cad.ISocketable;
+import org.lwjgl.input.Keyboard;
+import vazkii.psi.api.cad.ISocketableCapability;
 import vazkii.psi.api.cad.ISocketableController;
 import vazkii.psi.client.gui.GuiLeveling;
 import vazkii.psi.client.gui.GuiSocketSelect;
@@ -31,16 +31,30 @@ public class KeybindHandler {
 		ClientRegistry.registerKeyBinding(keybind);
 	}
 
+	private static boolean isSocketableController(PlayerEntity player, ItemStack stack) {
+		if (!(stack.getItem() instanceof ISocketableController))
+			return false;
+
+		ItemStack[] stacks = ((ISocketableController) stack.getItem()).getControlledStacks(player, stack);
+
+		for (ItemStack controlled : stacks) {
+			if (!controlled.isEmpty() && ISocketableCapability.isSocketable(controlled))
+				return true;
+		}
+
+		return false;
+	}
+
 	public static void keyDown() {
 		Minecraft mc = Minecraft.getMinecraft();
-		ItemStack stack = mc.player.getHeldItem(EnumHand.MAIN_HAND);
+		ItemStack stack = mc.player.getHeldItem(Hand.MAIN_HAND);
 		
 		if(mc.currentScreen == null) {
-			if(!stack.isEmpty() && (stack.getItem() instanceof ISocketable || stack.getItem() instanceof ISocketableController))
+			if(!stack.isEmpty() && (ISocketableCapability.isSocketable(stack) || isSocketableController(mc.player, stack)))
 				mc.displayGuiScreen(new GuiSocketSelect(stack));
 			else {
-				stack = mc.player.getHeldItem(EnumHand.OFF_HAND);
-				if(!stack.isEmpty() && (stack.getItem() instanceof ISocketable || stack.getItem() instanceof ISocketableController))
+				stack = mc.player.getHeldItem(Hand.OFF_HAND);
+				if(!stack.isEmpty() && (ISocketableCapability.isSocketable(stack) || isSocketableController(mc.player, stack)))
 					mc.displayGuiScreen(new GuiSocketSelect(stack));
 				else mc.displayGuiScreen(new GuiLeveling());
 			}

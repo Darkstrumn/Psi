@@ -27,6 +27,7 @@ public abstract class SpellParam {
 	public static int CYAN = 0x2AD0D2;
 	public static int YELLOW = 0xD2CC2A; // For entities
 	public static int GRAY = 0x767676; // For connectors
+	public static int BROWN = 0x664000; // For suppressors
 
 	public static final String PSI_PREFIX = "psi.spellparam.";
 
@@ -113,6 +114,8 @@ public abstract class SpellParam {
 		LEFT(-1, 0, 230, 0),
 		RIGHT(1, 0, 222, 0);
 
+		public static final Side[] DIRECTIONS = new Side[] { TOP, BOTTOM, LEFT, RIGHT };
+
 		public final int offx, offy, u, v;
 
 		Side(int offx, int offy, int u, int v) {
@@ -120,16 +123,6 @@ public abstract class SpellParam {
 			this.offy = offy;
 			this.u = u;
 			this.v = v;
-		}
-
-		public Side getOpposite() {
-			switch(this) {
-			case TOP: return BOTTOM;
-			case BOTTOM: return TOP;
-			case LEFT: return RIGHT;
-			case RIGHT: return LEFT;
-			default: return OFF;
-			}
 		}
 
 		public boolean isEnabled() {
@@ -142,6 +135,37 @@ public abstract class SpellParam {
 
 		public static Side fromInt(int i) {
 			return Side.class.getEnumConstants()[i];
+		}
+
+		public Side getOpposite() {
+			return mapSides(BOTTOM, TOP, RIGHT, LEFT);
+		}
+
+		public Side mirrorVertical() {
+			return mapSides(BOTTOM, TOP, LEFT, RIGHT);
+		}
+
+		public Side rotateCW() {
+			return mapSides(LEFT, RIGHT, BOTTOM, TOP);
+		}
+
+		public Side rotateCCW() {
+			return mapSides(RIGHT, LEFT, TOP, BOTTOM);
+		}
+
+		private Side mapSides(Side whenUp, Side whenDown, Side whenL, Side whenR) {
+			switch (this) {
+				case TOP:
+					return whenUp;
+				case BOTTOM:
+					return whenDown;
+				case LEFT:
+					return whenL;
+				case RIGHT:
+					return whenR;
+				default:
+					return OFF;
+			}
 		}
 	}
 

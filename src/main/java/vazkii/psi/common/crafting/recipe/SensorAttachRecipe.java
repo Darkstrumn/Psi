@@ -10,12 +10,10 @@
  */
 package vazkii.psi.common.crafting.recipe;
 
-import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraftforge.common.ForgeHooks;
 import vazkii.arl.recipe.ModRecipe;
 import vazkii.psi.api.exosuit.IExosuitSensor;
 import vazkii.psi.api.exosuit.ISensorHoldable;
@@ -29,7 +27,7 @@ public class SensorAttachRecipe extends ModRecipe {
 	}
 
 	@Override
-	public boolean matches(@Nonnull InventoryCrafting var1, @Nonnull World var2) {
+	public boolean matches(@Nonnull CraftingInventory var1, @Nonnull World var2) {
 		boolean foundSensor = false;
 		boolean foundTarget = false;
 
@@ -53,7 +51,7 @@ public class SensorAttachRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getCraftingResult(@Nonnull InventoryCrafting var1) {
+	public ItemStack getCraftingResult(@Nonnull CraftingInventory var1) {
 		ItemStack sensor = ItemStack.EMPTY;
 		ItemStack target = ItemStack.EMPTY;
 
@@ -79,15 +77,14 @@ public class SensorAttachRecipe extends ModRecipe {
 		return ItemStack.EMPTY;
 	}
 
-	@Nonnull
 	@Override
-	public NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv) {
-		return ForgeHooks.defaultRecipeGetRemainingItems(inv);
+	public boolean isDynamic() {
+		return true;
 	}
 
 	@Override
-	public boolean canFit(int p_194133_1_, int p_194133_2_) {
-		return false;
+	public boolean canFit(int width, int height) {
+		return true;
 	}
 
 }

@@ -10,24 +10,21 @@
  */
 package vazkii.psi.common.item;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.SoundEvents;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
-import net.minecraft.util.EnumActionResult;
-import net.minecraft.util.EnumHand;
+import net.minecraft.util.ActionResultType;
+import net.minecraft.util.Hand;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.world.World;
 import vazkii.arl.item.ItemMod;
+import vazkii.psi.api.spell.detonator.IDetonationHandler;
 import vazkii.psi.common.core.PsiCreativeTab;
-import vazkii.psi.common.entity.EntitySpellCharge;
 import vazkii.psi.common.item.base.IPsiItem;
 import vazkii.psi.common.lib.LibItemNames;
 
 import javax.annotation.Nonnull;
-import java.util.List;
-
-import static vazkii.psi.api.spell.SpellContext.MAX_DISTANCE;
 
 public class ItemDetonator extends ItemMod implements IPsiItem {
 
@@ -39,20 +36,15 @@ public class ItemDetonator extends ItemMod implements IPsiItem {
 
 	@Nonnull
 	@Override
-	public ActionResult<ItemStack> onItemRightClick(World worldIn, EntityPlayer playerIn, @Nonnull EnumHand hand) {
+	public ActionResult<ItemStack> onItemRightClick(World worldIn, PlayerEntity playerIn, @Nonnull Hand hand) {
 		ItemStack itemStackIn = playerIn.getHeldItem(hand);
-		List<EntitySpellCharge> charges = worldIn.getEntitiesWithinAABB(EntitySpellCharge.class,
-				playerIn.getEntityBoundingBox().grow(MAX_DISTANCE),
-				entity -> entity != null && entity.getDistanceSq(playerIn) <= MAX_DISTANCE * MAX_DISTANCE);
-		if(!charges.isEmpty())
-			for(EntitySpellCharge c : charges)
-				c.doExplosion();
+		IDetonationHandler.performDetonation(worldIn, playerIn);
 
 		if(!worldIn.isRemote)
-			worldIn.playSound(playerIn, playerIn.posX, playerIn.posY, playerIn.posZ, SoundEvents.UI_BUTTON_CLICK, SoundCategory.PLAYERS, 1F, 1F);
+			worldIn.playSound(null, playerIn.posX, playerIn.posY, playerIn.posZ, SoundEvents.UI_BUTTON_CLICK, SoundCategory.PLAYERS, 1F, 1F);
 		else playerIn.swingArm(hand);
 
-		return new ActionResult<>(charges.isEmpty() ? EnumActionResult.PASS : EnumActionResult.SUCCESS, itemStackIn);
+		return new ActionResult<>(ActionResultType.SUCCESS, itemStackIn);
 	}
 
 }

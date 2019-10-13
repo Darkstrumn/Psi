@@ -12,26 +12,29 @@ package vazkii.psi.api.cad;
 
 import net.minecraft.item.ItemStack;
 import vazkii.psi.api.internal.IPlayerData;
-import vazkii.psi.api.spell.ISpellContainer;
+import vazkii.psi.api.spell.ISpellAcceptor;
 
 /**
  * This interface defines an item that can have Spell Bullets
  * put into it.
+ *
+ * As of version 73, this interface should not be used directly,
+ * instead interacting with the item via its {@link ISocketableCapability}.
  */
 public interface ISocketable extends IShowPsiBar {
 
 	int MAX_SLOTS = 12;
 
 	static String getSocketedItemName(ItemStack stack, String fallback) {
-		if(stack.isEmpty() || !(stack.getItem() instanceof ISocketable))
+		if(stack.isEmpty() || !ISocketableCapability.isSocketable(stack))
 			return fallback;
 
-		ISocketable socketable = (ISocketable) stack.getItem();
-		ItemStack item = socketable.getBulletInSocket(stack, socketable.getSelectedSlot(stack));
+		ISocketableCapability socketable = ISocketableCapability.socketable(stack);
+		ItemStack item = socketable.getBulletInSocket(socketable.getSelectedSlot());
 		if(item.isEmpty())
 			return fallback;
 
-		return item.getDisplayName();
+        return item.getDisplayName().getString();
 	}
 
 	/**
@@ -66,23 +69,20 @@ public interface ISocketable extends IShowPsiBar {
 	 */
 	void setSelectedSlot(ItemStack stack, int slot);
 
-    default boolean isItemValid(ItemStack stack, int slot, ItemStack bullet) {
-    	if (!isSocketSlotAvailable(stack, slot))
-    		return false;
+	default boolean isItemValid(ItemStack stack, int slot, ItemStack bullet) {
+		if (!isSocketSlotAvailable(stack, slot))
+			return false;
 
-    	if (bullet.isEmpty() || !(bullet.getItem() instanceof ISpellContainer))
-    		return false;
+		if (bullet.isEmpty() || !ISpellAcceptor.hasSpell(bullet))
+			return false;
 
-    	ISpellContainer container = (ISpellContainer) bullet.getItem();
+		ISpellAcceptor container = ISpellAcceptor.acceptor(bullet);
 
-    	if (!container.containsSpell(bullet))
-    		return false;
+		return stack.getItem() instanceof ICAD || !container.isCADOnlyContainer();
+	}
 
-        return stack.getItem() instanceof ICAD || !container.isCADOnlyContainer(bullet);
-    }
-
-    default boolean canLoopcast(ItemStack stack) {
-    	return stack.getItem() instanceof ICAD;
+	default boolean canLoopcast(ItemStack stack) {
+		return stack.getItem() instanceof ICAD;
 	}
 
 	@Override

@@ -10,16 +10,18 @@
  */
 package vazkii.psi.common.entity;
 
-import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
+import vazkii.psi.api.spell.detonator.IDetonationHandler;
 
-public class EntitySpellCharge extends EntitySpellGrenade {
+public class EntitySpellCharge extends EntitySpellGrenade implements IDetonationHandler {
 
 	public EntitySpellCharge(World worldIn) {
 		super(worldIn);
 	}
 
-	public EntitySpellCharge(World worldIn, EntityLivingBase throwerIn) {
+	public EntitySpellCharge(World worldIn, LivingEntity throwerIn) {
 		super(worldIn, throwerIn);
 	}
 
@@ -38,4 +40,13 @@ public class EntitySpellCharge extends EntitySpellGrenade {
 		return false;
 	}
 
+	@Override
+	public Vec3d objectLocus() {
+		return getPositionVector();
+	}
+
+	@Override
+	public void detonate() {
+		doExplosion();
+	}
 }

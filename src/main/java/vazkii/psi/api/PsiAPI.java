@@ -10,20 +10,19 @@
  */
 package vazkii.psi.api;
 
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.SoundEvents;
-import net.minecraft.item.Item.ToolMaterial;
-import net.minecraft.item.ItemArmor.ArmorMaterial;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.Ingredient;
+import net.minecraft.util.IItemProvider;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.RegistryNamespaced;
-import net.minecraftforge.common.crafting.CraftingHelper;
-import net.minecraftforge.common.util.EnumHelper;
-import net.minecraftforge.fml.common.Loader;
-import net.minecraftforge.fml.common.ModContainer;
+import net.minecraft.util.SoundEvents;
+import net.minecraft.util.registry.SimpleRegistry;
+import net.minecraftforge.fml.ModContainer;
+import net.minecraftforge.fml.ModLoadingContext;
 import vazkii.psi.api.cad.ICAD;
 import vazkii.psi.api.internal.DummyMethodHandler;
 import vazkii.psi.api.internal.IInternalMethodHandler;
+import vazkii.psi.api.material.PsimetalArmorMaterial;
 import vazkii.psi.api.recipe.TrickRecipe;
 import vazkii.psi.api.spell.PieceGroup;
 import vazkii.psi.api.spell.SpellPiece;
@@ -43,7 +42,8 @@ public final class PsiAPI {
 	 */
 	public static IInternalMethodHandler internalHandler = new DummyMethodHandler();
 
-	public static final RegistryNamespaced<String, Class<? extends SpellPiece>> spellPieceRegistry = new RegistryNamespaced<>();
+
+	public static final SimpleRegistry<Class<? extends SpellPiece>> spellPieceRegistry = new SimpleRegistry<>();
 	public static final HashMap<String, ResourceLocation> simpleSpellTextures = new HashMap<>();
 	public static final HashMap<Class<? extends SpellPiece>, PieceGroup> groupsForPiece = new HashMap<>();
 	public static final HashMap<Class<? extends SpellPiece>, String> pieceMods = new HashMap<>();
@@ -51,15 +51,15 @@ public final class PsiAPI {
 
 	public static final List<TrickRecipe> trickRecipes = new ArrayList<>();
 
-	public static final ToolMaterial PSIMETAL_TOOL_MATERIAL = EnumHelper.addToolMaterial("PSIMETAL", 3, 900, 7.8F, 2F, 12);
-	public static final ArmorMaterial PSIMETAL_ARMOR_MATERIAL = EnumHelper.addArmorMaterial("PSIMETAL", "psimetal", 18, new int[]{2, 6, 5, 2}, 12, SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0F);
+
+	public static final PsimetalArmorMaterial PSIMETAL_ARMOR_MATERIAL = new PsimetalArmorMaterial("psimetal", 18, new int[]{2, 6, 5, 2}, 12, SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0F, null);
 
 	public static int levelCap = 1;
 
 	private static String getCurrentModId() {
-		ModContainer activeModContainer = Loader.instance().activeModContainer();
+        ModContainer activeModContainer = ModLoadingContext.get().getActiveContainer();
 		if (activeModContainer != null)
-			return activeModContainer.getModId();
+            return activeModContainer.getModId();
 		return "minecraft";
 	}
 
@@ -67,7 +67,7 @@ public final class PsiAPI {
 	 * Registers a Spell Piece given its class, by which, it puts it in the registry.
 	 */
 	public static void registerSpellPiece(String key, Class<? extends SpellPiece> clazz) {
-		spellPieceRegistry.putObject(key, clazz);
+		spellPieceRegistry.register(new ResourceLocation(key), clazz);
 		pieceMods.put(clazz, getCurrentModId());
 	}
 
@@ -121,10 +121,10 @@ public final class PsiAPI {
 	}
 
 	/**
-	 * Gets the CAD the passed EntityPlayer is using. As a player can only have one CAD, if there's
+	 * Gets the CAD the passed PlayerEntity is using. As a player can only have one CAD, if there's
 	 * more than one, this will return null.
 	 */
-	public static ItemStack getPlayerCAD(EntityPlayer player) {
+	public static ItemStack getPlayerCAD(PlayerEntity player) {
 		if(player == null)
 			return ItemStack.EMPTY;
 
@@ -142,7 +142,7 @@ public final class PsiAPI {
 		return cad;
 	}
 	
-	public static int getPlayerCADSlot(EntityPlayer player) {
+	public static int getPlayerCADSlot(PlayerEntity player) {
 		if(player == null)
 			return -1;
 
@@ -160,7 +160,7 @@ public final class PsiAPI {
 		return slot;
 	}
 
-	public static boolean canCADBeUpdated(EntityPlayer player) {
+	public static boolean canCADBeUpdated(PlayerEntity player) {
 		if(player == null)
 			return false;
 
@@ -172,7 +172,8 @@ public final class PsiAPI {
 	}
 
 	public static void registerTrickRecipe(String trick, Object input, ItemStack output, ItemStack minAssembly) {
-		trickRecipes.add(new TrickRecipe(trick, CraftingHelper.getIngredient(input), output, minAssembly));
+		//TODO: Someone check if this is correct
+		trickRecipes.add(new TrickRecipe(trick, Ingredient.fromItems((IItemProvider) input), output, minAssembly));
 	}
 
 }

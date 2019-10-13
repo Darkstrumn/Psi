@@ -10,12 +10,14 @@
  */
 package vazkii.psi.api.internal;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import vazkii.psi.api.spell.ISpellCache;
-import vazkii.psi.api.spell.ISpellCompiler;
-import vazkii.psi.api.spell.Spell;
-import vazkii.psi.api.spell.SpellContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import vazkii.psi.api.spell.*;
+
+import java.util.List;
 
 /**
  * This is a dummy class. You'll never interact with it, it's just here so
@@ -24,7 +26,7 @@ import vazkii.psi.api.spell.SpellContext;
 public final class DummyMethodHandler implements IInternalMethodHandler {
 
 	@Override
-	public IPlayerData getDataForPlayer(EntityPlayer player) {
+	public IPlayerData getDataForPlayer(PlayerEntity player) {
 		return new DummyPlayerData();
 	}
 
@@ -49,7 +51,28 @@ public final class DummyMethodHandler implements IInternalMethodHandler {
 	}
 
 	@Override
+	public void setCrashData(CompiledSpell spell, SpellPiece piece) {
+		// NO-OP
+	}
+
+	@Override
+	@OnlyIn(Dist.CLIENT)
+	public void renderTooltip(int x, int y, List<String> tooltipData, int color, int color2) {
+		// NO-OP
+	}
+
+	@Override
 	public String localize(String key, Object... format) {
 		return key;
+	}
+
+	@Override
+	public ItemStack createDefaultCAD(List<ItemStack> components) {
+		return ItemStack.EMPTY;
+	}
+
+	@Override
+	public ItemStack createCAD(ItemStack base, List<ItemStack> components) {
+		return ItemStack.EMPTY;
 	}
 }

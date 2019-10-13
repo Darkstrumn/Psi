@@ -10,8 +10,10 @@
  */
 package vazkii.psi.api.internal;
 
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import vazkii.psi.api.spell.SpellPiece;
+
+import javax.annotation.Nullable;
 
 /**
  * This is a dummy class. You'll never interact with it, it's just here so
@@ -50,12 +52,17 @@ public class DummyPlayerData implements IPlayerData {
 	}
 
 	@Override
+	public boolean isOverflowed() {
+		return false;
+	}
+
+	@Override
 	public void deductPsi(int psi, int cd, boolean sync, boolean shatter) {
 		// NO-OP
 	}
 
 	@Override
-	public boolean isPieceGroupUnlocked(String group) {
+	public boolean isPieceGroupUnlocked(String group, @Nullable String piece) {
 		return false;
 	}
 
@@ -70,7 +77,7 @@ public class DummyPlayerData implements IPlayerData {
 	}
 
 	@Override
-	public NBTTagCompound getCustomData() {
+	public CompoundNBT getCustomData() {
 		return null;
 	}
 

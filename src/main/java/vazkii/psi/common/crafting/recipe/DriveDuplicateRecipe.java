@@ -10,12 +10,10 @@
  */
 package vazkii.psi.common.crafting.recipe;
 
-import net.minecraft.inventory.InventoryCrafting;
+import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import net.minecraftforge.common.ForgeHooks;
 import vazkii.arl.recipe.ModRecipe;
 import vazkii.psi.api.spell.Spell;
 import vazkii.psi.common.item.ItemSpellDrive;
@@ -29,7 +27,7 @@ public class DriveDuplicateRecipe extends ModRecipe {
 	}
 
 	@Override
-	public boolean matches(@Nonnull InventoryCrafting var1, @Nonnull World var2) {
+	public boolean matches(@Nonnull CraftingInventory var1, @Nonnull World var2) {
 		boolean foundSource = false;
 		boolean foundTarget = false;
 
@@ -55,7 +53,7 @@ public class DriveDuplicateRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getCraftingResult(@Nonnull InventoryCrafting var1) {
+	public ItemStack getCraftingResult(@Nonnull CraftingInventory var1) {
 		Spell source = null;
 		ItemStack target = ItemStack.EMPTY;
 
@@ -80,14 +78,13 @@ public class DriveDuplicateRecipe extends ModRecipe {
 		return ItemStack.EMPTY;
 	}
 
-	@Nonnull
 	@Override
-	public NonNullList<ItemStack> getRemainingItems(InventoryCrafting inv) {
-		return ForgeHooks.defaultRecipeGetRemainingItems(inv);
+	public boolean isDynamic() {
+		return true;
 	}
 
 	@Override
-	public boolean canFit(int p_194133_1_, int p_194133_2_) {
-		return false;
+	public boolean canFit(int width, int height) {
+		return true;
 	}
 }

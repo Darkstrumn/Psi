@@ -10,9 +10,9 @@
  */
 package vazkii.psi.client.gui;
 
-import net.minecraft.client.gui.inventory.GuiContainer;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
@@ -25,13 +25,13 @@ import vazkii.psi.common.block.tile.TileCADAssembler;
 import vazkii.psi.common.block.tile.container.ContainerCADAssembler;
 import vazkii.psi.common.lib.LibResources;
 
-public class GuiCADAssembler extends GuiContainer {
+public class GuiCADAssembler extends ContainerScreen {
 
 	private static final ResourceLocation texture = new ResourceLocation(LibResources.GUI_CAD_ASSEMBLER);
-	private final EntityPlayer player;
+	private final PlayerEntity player;
 	private final TileCADAssembler assembler;
 
-	public GuiCADAssembler(EntityPlayer player, TileCADAssembler assembler) {
+	public GuiCADAssembler(PlayerEntity player, TileCADAssembler assembler) {
 		super(new ContainerCADAssembler(player, assembler));
 		this.player = player;
 		this.assembler = assembler;
@@ -45,11 +45,11 @@ public class GuiCADAssembler extends GuiContainer {
 	}
 
 	@Override
-    public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawDefaultBackground();
-        super.drawScreen(mouseX, mouseY, partialTicks);
-        this.renderHoveredToolTip(mouseX, mouseY);
-    }
+	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		this.drawDefaultBackground();
+		super.drawScreen(mouseX, mouseY, partialTicks);
+		this.renderHoveredToolTip(mouseX, mouseY);
+	}
 	
 	@Override
 	protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {

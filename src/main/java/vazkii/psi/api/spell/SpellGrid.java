@@ -10,13 +10,14 @@
  */
 package vazkii.psi.api.spell;
 
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.nbt.NBTTagList;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.nbt.CompoundNBT;
+import net.minecraft.nbt.ListNBT;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,6 +36,7 @@ public final class SpellGrid {
 	private static final String TAG_SPELL_DATA = "data";
 
 	public static final int GRID_SIZE = 9;
+	public static final int GRID_CENTER = (GRID_SIZE - 1) / 2;
 
 	public final Spell spell;
 	public SpellPiece[][] gridData;
@@ -42,7 +44,7 @@ public final class SpellGrid {
 	private boolean empty;
 	private int leftmost, rightmost, topmost, bottommost;
 
-	@SideOnly(Side.CLIENT)
+	@OnlyIn(Dist.CLIENT)
 	public void draw() {
 		for(int i = 0; i < GRID_SIZE; i++)
 			for(int j = 0; j < GRID_SIZE; j++) {
@@ -90,7 +92,66 @@ public final class SpellGrid {
 		return Math.max(rightmost - leftmost + 1, bottommost - topmost + 1);
 	}
 
-	public boolean shift(SpellParam.Side side, boolean doit) {
+	public void mirrorVertical() {
+		recalculateBoundaries();
+		if (empty)
+			return;
+
+		SpellPiece[][] newGrid = new SpellPiece[GRID_SIZE][GRID_SIZE];
+
+		for(int i = 0; i < GRID_SIZE; i++) {
+			for (int j = 0; j < GRID_SIZE; j++) {
+				SpellPiece p = gridData[i][j];
+
+				if (p != null) {
+					int newY = GRID_SIZE - j - 1;
+
+					newGrid[i][newY] = p;
+					p.y = newY;
+
+					for (SpellParam param : p.paramSides.keySet())
+						p.paramSides.put(param, p.paramSides.get(param).mirrorVertical());
+				}
+			}
+		}
+
+		gridData = newGrid;
+	}
+
+	public void rotate(boolean ccw) {
+		recalculateBoundaries();
+		if (empty)
+			return;
+
+		int xMod = ccw ? -1 : 1;
+		int yMod = ccw ? 1 : -1;
+
+		SpellPiece[][] newGrid = new SpellPiece[GRID_SIZE][GRID_SIZE];
+
+		for(int i = 0; i < GRID_SIZE; i++) {
+			for (int j = 0; j < GRID_SIZE; j++) {
+				SpellPiece p = gridData[i][j];
+
+				if (p != null) {
+					int newX = xMod * (j - GRID_CENTER) + GRID_CENTER;
+					int newY = yMod * (i - GRID_CENTER) + GRID_CENTER;
+
+					newGrid[newX][newY] = p;
+					p.x = newX;
+					p.y = newY;
+
+					for (SpellParam param : p.paramSides.keySet()) {
+						SpellParam.Dist side = p.paramSides.get(param);
+						p.paramSides.put(param, ccw ? side.rotateCCW() : side.rotateCW());
+					}
+				}
+			}
+		}
+
+		gridData = newGrid;
+	}
+
+	public boolean shift(SpellParam.Dist side, boolean doit) {
 		recalculateBoundaries();
 
 		if(empty)
@@ -102,18 +163,19 @@ public final class SpellGrid {
 
 			SpellPiece[][] newGrid = new SpellPiece[GRID_SIZE][GRID_SIZE];
 
-			for(int i = 0; i < GRID_SIZE; i++)
-				for(int j = 0; j < GRID_SIZE; j++) {
+			for(int i = 0; i < GRID_SIZE; i++) {
+				for (int j = 0; j < GRID_SIZE; j++) {
 					SpellPiece p = gridData[i][j];
 
-					if(p != null) {
-						int newx = i + side.offx;
-						int newy = j + side.offy;
-						newGrid[newx][newy] = p;
-						p.x = newx;
-						p.y = newy;
+					if (p != null) {
+						int newX = i + side.offx;
+						int newY = j + side.offy;
+						newGrid[newX][newY] = p;
+						p.x = newX;
+						p.y = newY;
 					}
 				}
+			}
 
 			gridData = newGrid;
 			return true;
@@ -125,28 +187,57 @@ public final class SpellGrid {
 		return x >= 0 && y >= 0 && x < GRID_SIZE && y < GRID_SIZE;
 	}
 
-	public SpellPiece getPieceAtSideWithRedirections(int x, int y, SpellParam.Side side) throws SpellCompilationException {
-		return getPieceAtSideWithRedirections(new ArrayList<>(), x, y, side);
-	}
-
-	public SpellPiece getPieceAtSideWithRedirections(List<SpellPiece> traversed, int x, int y, SpellParam.Side side) throws SpellCompilationException {
+	private SpellPiece getPieceAtSide(Multimap<SpellPiece, SpellParam.Dist> traversed, int x, int y, SpellParam.Dist side) throws SpellCompilationException {
 		SpellPiece atSide = getPieceAtSideSafely(x, y, side);
-		if(traversed.contains(atSide))
+		if(traversed.containsEntry(atSide, side))
 			throw new SpellCompilationException(SpellCompilationException.INFINITE_LOOP);
 
-		traversed.add(atSide);
+		traversed.put(atSide, side);
+		return atSide;
+	}
+
+	@Deprecated
+	@SuppressWarnings("unused")
+	public SpellPiece getPieceAtSideWithRedirections(List<SpellPiece> unused, int x, int y, SpellParam.Dist side) throws SpellCompilationException {
+		return getPieceAtSideWithRedirections(x, y, side);
+	}
+
+	public SpellPiece getPieceAtSideWithRedirections(int x, int y, SpellParam.Dist side) throws SpellCompilationException {
+		return getPieceAtSideWithRedirections(HashMultimap.create(), x, y, side);
+	}
+
+	public SpellPiece getPieceAtSideWithRedirections(Multimap<SpellPiece, SpellParam.Dist> traversed, int x, int y, SpellParam.Dist side) throws SpellCompilationException {
+		SpellPiece atSide = getPieceAtSide(traversed, x, y, side);
 		if(!(atSide instanceof IGenericRedirector))
 			return atSide;
 
 		IGenericRedirector redirector = (IGenericRedirector) atSide;
-		SpellParam.Side rside = redirector.remapSide(side);
+		SpellParam.Dist rside = redirector.remapSide(side);
 		if(!rside.isEnabled())
 			return null;
 
 		return getPieceAtSideWithRedirections(traversed, atSide.x, atSide.y, rside);
 	}
 
-	public SpellPiece getPieceAtSideSafely(int x, int y, SpellParam.Side side) {
+	public SpellPiece getPieceAtSideWithRedirections(int x, int y, SpellParam.Dist side, ISpellCompiler compiler) throws SpellCompilationException {
+		return getPieceAtSideWithRedirections(HashMultimap.create(), x, y, side, compiler);
+	}
+
+	public SpellPiece getPieceAtSideWithRedirections(Multimap<SpellPiece, SpellParam.Dist> traversed, int x, int y, SpellParam.Dist side, ISpellCompiler compiler) throws SpellCompilationException {
+		SpellPiece atSide = getPieceAtSide(traversed, x, y, side);
+		if(!(atSide instanceof IGenericRedirector))
+			return atSide;
+
+		IGenericRedirector redirector = (IGenericRedirector) atSide;
+		compiler.buildRedirect(atSide);
+		SpellParam.Dist rside = redirector.remapSide(side);
+		if(!rside.isEnabled())
+			return null;
+
+		return getPieceAtSideWithRedirections(traversed, atSide.x, atSide.y, rside, compiler);
+	}
+
+	public SpellPiece getPieceAtSideSafely(int x, int y, SpellParam.Dist side) {
 		int xp = x + side.offx;
 		int yp = y + side.offy;
 		if(!exists(xp, yp))
@@ -171,13 +262,13 @@ public final class SpellGrid {
 		return true;
 	}
 
-	public void readFromNBT(NBTTagCompound cmp) {
+	public void readFromNBT(CompoundNBT cmp) {
 		gridData = new SpellPiece[GRID_SIZE][GRID_SIZE];
 
-		NBTTagList list = cmp.getTagList(TAG_SPELL_LIST, 10);
+		ListNBT list = cmp.getTagList(TAG_SPELL_LIST, 10);
 		int len = list.tagCount();
 		for(int i = 0; i < len; i++) {
-			NBTTagCompound lcmp = list.getCompoundTagAt(i);
+			CompoundNBT lcmp = list.getCompoundTagAt(i);
 			int posX, posY;
 			
 			if(lcmp.hasKey(TAG_SPELL_POS_X_LEGACY)) {
@@ -188,7 +279,7 @@ public final class SpellGrid {
 				posY = lcmp.getInteger(TAG_SPELL_POS_Y);
 			}
 			
-			NBTTagCompound data;
+			CompoundNBT data;
 			if(lcmp.hasKey(TAG_SPELL_DATA_LEGACY))
 				data = lcmp.getCompoundTag(TAG_SPELL_DATA_LEGACY);
 			else data = lcmp.getCompoundTag(TAG_SPELL_DATA);
@@ -203,17 +294,17 @@ public final class SpellGrid {
 		}
 	}
 
-	public void writeToNBT(NBTTagCompound cmp) {
-		NBTTagList list = new NBTTagList();
+	public void writeToNBT(CompoundNBT cmp) {
+		ListNBT list = new ListNBT();
 		for(int i = 0; i < GRID_SIZE; i++)
 			for(int j = 0; j < GRID_SIZE; j++) {
 				SpellPiece piece = gridData[i][j];
 				if(piece != null) {
-					NBTTagCompound lcmp = new NBTTagCompound();
+					CompoundNBT lcmp = new CompoundNBT();
 					lcmp.setInteger(TAG_SPELL_POS_X, i);
 					lcmp.setInteger(TAG_SPELL_POS_Y, j);
 
-					NBTTagCompound data = new NBTTagCompound();
+					CompoundNBT data = new CompoundNBT();
 					piece.writeToNBT(data);
 					lcmp.setTag(TAG_SPELL_DATA, data);
 

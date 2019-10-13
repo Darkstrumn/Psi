@@ -10,23 +10,27 @@
  */
 package vazkii.psi.common.core.handler;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.api.distmarker.OnlyIn;
+import vazkii.arl.util.RenderHelper;
 import vazkii.psi.api.internal.IInternalMethodHandler;
 import vazkii.psi.api.internal.IPlayerData;
-import vazkii.psi.api.spell.ISpellCache;
-import vazkii.psi.api.spell.ISpellCompiler;
-import vazkii.psi.api.spell.Spell;
-import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.*;
 import vazkii.psi.client.gui.GuiProgrammer;
 import vazkii.psi.common.Psi;
+import vazkii.psi.common.item.ItemCAD;
 import vazkii.psi.common.spell.SpellCache;
 import vazkii.psi.common.spell.SpellCompiler;
+
+import java.util.List;
 
 public final class InternalMethodHandler implements IInternalMethodHandler {
 
 	@Override
-	public IPlayerData getDataForPlayer(EntityPlayer player) {
+	public IPlayerData getDataForPlayer(PlayerEntity player) {
 		return PlayerDataHandler.get(player);
 	}
 
@@ -52,8 +56,28 @@ public final class InternalMethodHandler implements IInternalMethodHandler {
 	}
 
 	@Override
+	public void setCrashData(CompiledSpell spell, SpellPiece piece) {
+		CrashReportHandler.setSpell(spell, piece);
+	}
+
+	@Override
+	@OnlyIn(Dist.CLIENT)
+	public void renderTooltip(int x, int y, List<String> tooltipData, int color, int color2) {
+		RenderHelper.renderTooltip(x, y, tooltipData, color, color2);
+	}
+
+	@Override
 	public String localize(String key, Object... format) {
 		return Psi.proxy.localize(key, format);
 	}
 
+	@Override
+	public ItemStack createDefaultCAD(List<ItemStack> components) {
+		return ItemCAD.makeCAD(components);
+	}
+
+	@Override
+	public ItemStack createCAD(ItemStack base, List<ItemStack> components) {
+		return ItemCAD.makeCAD(base, components);
+	}
 }

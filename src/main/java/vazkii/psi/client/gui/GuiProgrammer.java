@@ -11,23 +11,27 @@
 package vazkii.psi.client.gui;
 
 import com.google.common.collect.ImmutableSet;
+import gnu.trove.map.TObjectIntMap;
+import gnu.trove.map.hash.TObjectIntHashMap;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.GuiScreen;
-import net.minecraft.client.gui.GuiTextField;
-import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.gui.widget.button.Button;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.TextFieldWidget;
+import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.JsonToNBT;
-import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
 import org.apache.commons.lang3.tuple.Pair;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import vazkii.arl.network.NetworkHandler;
+import vazkii.arl.util.RenderHelper;
 import vazkii.arl.util.TooltipHandler;
 import vazkii.psi.api.PsiAPI;
 import vazkii.psi.api.cad.EnumCADStat;
@@ -52,47 +56,49 @@ import vazkii.psi.common.spell.constant.PieceConstantNumber;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class GuiProgrammer extends GuiScreen {
+public class GuiProgrammer extends Screen {
 
 	public static final ResourceLocation texture = new ResourceLocation(LibResources.GUI_PROGRAMMER);
 	private static final int PIECES_PER_PAGE = 25;
 
-	private static final Pattern inPattern = Pattern.compile("^in:(\\w+)(?:\\s?(.*))?$");
-	private static final Pattern outPattern = Pattern.compile("^out:(\\w+)(?:\\s(.*))?$");
-
 	public final TileProgrammer programmer;
+	public Spell spell;
 	public List<String> tooltip = new ArrayList<>();
 	public final Stack<Spell> undoSteps = new Stack<>();
 	public final Stack<Spell> redoSteps = new Stack<>();
 	public static SpellPiece clipboard = null;
 
-	SpellCompiler compiler;
+	public SpellCompiler compiler;
 
-	int xSize, ySize, padLeft, padTop, left, top, gridLeft, gridTop;
-	int cursorX, cursorY;
-	static int selectedX, selectedY;
-	boolean panelEnabled, configEnabled, commentEnabled;
-	int panelX, panelY, panelWidth, panelHeight, panelCursor;
-	int page = 0;
-	boolean scheduleButtonUpdate = false;
-	final List<SpellPiece> visiblePieces = new ArrayList<>();
-	final List<GuiButton> panelButtons = new ArrayList<>();
-	final List<GuiButton> configButtons = new ArrayList<>();
-	GuiTextField searchField;
-	GuiTextField spellNameField;
-	GuiTextField commentField;
+	public int xSize, ySize, padLeft, padTop, left, top, gridLeft, gridTop;
+	public int cursorX, cursorY;
+	public static int selectedX, selectedY;
+	public boolean panelEnabled, configEnabled, commentEnabled;
+	public int panelX, panelY, panelWidth, panelHeight, panelCursor;
+	public int page = 0;
+	public boolean scheduleButtonUpdate = false;
+	public final List<SpellPiece> visiblePieces = new ArrayList<>();
+	public final List<Button> panelButtons = new ArrayList<>();
+	public final List<Button> configButtons = new ArrayList<>();
+	public TextFieldWidget searchField;
+	public TextFieldWidget spellNameField;
+	public TextFieldWidget commentField;
 	
 	public boolean takingScreenshot = false;
 	public boolean shareToReddit = false;
 	boolean spectator;
 
 	public GuiProgrammer(TileProgrammer programmer) {
-		this.programmer = programmer;
-		compiler = new SpellCompiler(programmer.spell);
+		this(programmer, programmer.spell);
+	}
+
+	public GuiProgrammer(TileProgrammer tile, Spell spell) {
+		programmer = tile;
+		this.spell = spell;
+		compiler = new SpellCompiler(spell);
 	}
 
 	@Override
@@ -110,27 +116,33 @@ public class GuiProgrammer extends GuiScreen {
 		panelWidth = 100;
 		panelHeight = 125;
 		cursorX = cursorY = -1;
-		searchField = new GuiTextField(0, fontRenderer, 0, 0, 70, 10);
+		searchField = new TextFieldWidget(0, fontRenderer, 0, 0, 70, 10);
 		searchField.setCanLoseFocus(false);
 		searchField.setFocused(true);
 		searchField.setEnableBackgroundDrawing(false);
 
-		spectator = programmer.playerLock != null && !programmer.playerLock.isEmpty() && !programmer.playerLock.equals(mc.player.getName());
+		if (programmer == null)
+			spectator = false;
+		else
+			spectator = programmer.playerLock != null && !programmer.playerLock.isEmpty() && !programmer.playerLock.equals(mc.player.getName());
 
-		spellNameField = new GuiTextField(0, fontRenderer, left + xSize - 130, top + ySize - 14, 120, 10);
+		spellNameField = new TextFieldWidget(0, fontRenderer, left + xSize - 130, top + ySize - 14, 120, 10);
 		spellNameField.setEnableBackgroundDrawing(false);
 		spellNameField.setMaxStringLength(20);
 		spellNameField.setEnabled(!spectator);
 		
-		commentField = new GuiTextField(0, fontRenderer, left, top + ySize / 2 - 10, xSize, 20);
+		commentField = new TextFieldWidget(0, fontRenderer, left, top + ySize / 2 - 10, xSize, 20);
 		commentField.setEnabled(false);
 		commentField.setVisible(false);
 		commentField.setMaxStringLength(500);
 
-		if(programmer.spell == null)
-			programmer.spell = new Spell();
+		if (spell == null)
+			spell = new Spell();
 
-		spellNameField.setText(programmer.spell.name);
+		if(programmer != null && programmer.spell == null)
+			programmer.spell = spell;
+
+		spellNameField.setText(spell.name);
 
 		buttonList.clear();
 		onSelectedChanged();
@@ -141,10 +153,12 @@ public class GuiProgrammer extends GuiScreen {
 	
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-		if(programmer == null || programmer.getWorld().getTileEntity(programmer.getPos()) != programmer || !programmer.canPlayerInteract(mc.player)) {
+		if(programmer != null && (programmer.getWorld().getTileEntity(programmer.getPos()) != programmer || !programmer.canPlayerInteract(mc.player))) {
 			mc.displayGuiScreen(null);
 			return;
 		}
+
+		ITooltipFlag tooltipFlag = mc.gameSettings.advancedItemTooltips ? ITooltipFlag.TooltipFlags.ADVANCED : ITooltipFlag.TooltipFlags.NORMAL;
 		
 		String comment = "";
 		int color = Psi.magical ? 0 : 0xFFFFFF;
@@ -167,7 +181,7 @@ public class GuiProgrammer extends GuiScreen {
 		int statusX = left - 16;
 		int statusY = top + 13;
 		drawTexturedModalRect(statusX, statusY, compiler.isErrored() ? 12 : 0, ySize + 28, 12, 12);
-		if(mouseX > statusX && mouseY > statusY && mouseX < statusX + 12 && mouseY < statusY + 12) {
+		if(mouseX > statusX - 1 && mouseY > statusY - 1 && mouseX < statusX + 13 && mouseY < statusY + 13) {
 			if(compiler.isErrored()) {
 				tooltip.add(TextFormatting.RED + I18n.format("psimisc.errored"));
 				tooltip.add(TextFormatting.GRAY + I18n.format(compiler.getError()));
@@ -190,10 +204,10 @@ public class GuiProgrammer extends GuiScreen {
 			GlStateManager.disableRescaleNormal();
 
 			if(mouseX > cadX && mouseY > cadY && mouseX < cadX + 16 && mouseY < cadY + 16) {
-				List<String> itemTooltip = cad.getTooltip(mc.player, ()->false);
+				List<String> itemTooltip = cad.getTooltip(mc.player, tooltipFlag);
 				for (int i = 0; i < itemTooltip.size(); ++i)
 					if (i == 0)
-						itemTooltip.set(i, cad.getRarity().rarityColor + itemTooltip.get(i));
+						itemTooltip.set(i, cad.getRarity().color + itemTooltip.get(i));
 					else itemTooltip.set(i, TextFormatting.GRAY + itemTooltip.get(i));
 
 				tooltip.addAll(itemTooltip);
@@ -240,7 +254,7 @@ public class GuiProgrammer extends GuiScreen {
 
 		SpellPiece piece = null;
 		if(SpellGrid.exists(selectedX, selectedY))
-			piece = programmer.spell.grid.gridData[selectedX][selectedY];
+			piece = spell.grid.gridData[selectedX][selectedY];
 		
 		if(configEnabled && !takingScreenshot) {
 			drawTexturedModalRect(left - 81, top + 55, xSize, 30, 81, 115);
@@ -283,7 +297,7 @@ public class GuiProgrammer extends GuiScreen {
 		
 		GlStateManager.pushMatrix();
 		GlStateManager.translate(gridLeft, gridTop, 0);
-		programmer.spell.draw();
+		spell.draw();
 
 		if(compiler.isErrored()) {
 			Pair<Integer, Integer> errorPos = compiler.getErrorLocation();
@@ -311,11 +325,12 @@ public class GuiProgrammer extends GuiScreen {
 			tooltipY = gridTop + cursorY * 18 + 8;
 		}
 
+		SpellPiece pieceAt = null;
 		if(cursorX != -1 && cursorY != -1) {
-            SpellPiece pieceAt = programmer.spell.grid.gridData[cursorX][cursorY];
-            if (pieceAt != null) {
-                pieceAt.getTooltip(tooltip);
-                comment = pieceAt.comment;
+			pieceAt = spell.grid.gridData[cursorX][cursorY];
+			if (pieceAt != null) {
+				pieceAt.getTooltip(tooltip);
+				comment = pieceAt.comment;
 			}
 
 			if(!takingScreenshot) {
@@ -361,7 +376,7 @@ public class GuiProgrammer extends GuiScreen {
 			drawRect(panelX, panelY, panelX + panelWidth, panelY + panelHeight, 0x88000000);
 
 			if(panelButtons.size() > 0) {
-				GuiButton button = panelButtons.get(Math.max(0, Math.min(panelCursor, panelButtons.size() - 1)));
+				Button button = panelButtons.get(Math.max(0, Math.min(panelCursor, panelButtons.size() - 1)));
 				int panelPieceX = button.x;
 				int panelPieceY = button.y;
 				drawRect(panelPieceX - 1, panelPieceY - 1, panelPieceX + 17, panelPieceY + 17, 0x559999FF);
@@ -395,8 +410,9 @@ public class GuiProgrammer extends GuiScreen {
 				TooltipHandler.addToTooltip(tooltip, "psimisc.programmerHelp");
 				String ctrl = I18n.format(Minecraft.IS_RUNNING_ON_MAC ? "psimisc.ctrlMac" : "psimisc.ctrlWindows");
 				TooltipHandler.tooltipIfShift(tooltip, () -> {
-					for(int i = 0; i < 20; i++)
-						TooltipHandler.addToTooltip(tooltip, "psi.programmerReference" + i, ctrl);
+					int i = 0;
+					while (I18n.hasKey("psi.programmerReference" + i))
+						tooltip.add(I18n.format("psi.programmerReference" + i++, ctrl).replaceAll("&", "\u00a7"));
 				});
 			}
 		}
@@ -409,56 +425,25 @@ public class GuiProgrammer extends GuiScreen {
 		if(isAltKeyDown())
 			tooltip = legitTooltip;
 
-        if (!takingScreenshot) {
-            if (piece != null) {
-                if (tooltip != null && !tooltip.isEmpty())
-                    piece.drawTooltip(tooltipX, tooltipY, tooltip);
+		if(!takingScreenshot && pieceAt != null) {
+			if (tooltip != null && !tooltip.isEmpty())
+				pieceAt.drawTooltip(tooltipX, tooltipY, tooltip);
 
 
-                if (comment != null && !comment.isEmpty()) {
-                    List<String> l = Arrays.asList(comment.split(";"));
-                    piece.drawCommentText(tooltipX, tooltipY, l);
-                }
-            } else {
-
-                if (panelEnabled && panelButtons.size() > 0) {
-                    for (GuiButton butn : panelButtons) {
-                        if (butn.isMouseOver() && butn instanceof GuiButtonSpellPiece) {
-                            SpellPiece hoverpiece = ((GuiButtonSpellPiece) butn).piece.copy();
-                            if (tooltip != null && !tooltip.isEmpty())
-                                hoverpiece.drawTooltip(tooltipX, tooltipY, tooltip);
-
-
-                            if (comment != null && !comment.isEmpty()) {
-                                List<String> l = Arrays.asList(comment.split(";"));
-                                hoverpiece.drawCommentText(tooltipX, tooltipY, l);
-                            }
-                        }
-                    }
-                } else if (cursorX != -1 && cursorY != -1) {
-                    SpellPiece pieceAt = programmer.spell.grid.gridData[cursorX][cursorY];
-                    if (pieceAt != null) {
-                        if (tooltip != null && !tooltip.isEmpty())
-                            pieceAt.drawTooltip(tooltipX, tooltipY, tooltip);
-
-                        if (comment != null && !comment.isEmpty()) {
-                            List<String> l = Arrays.asList(comment.split(";"));
-                            pieceAt.drawCommentText(tooltipX, tooltipY, l);
-                        }
-                    }
-                }
-
-            }
-        }
-
+			if (comment != null && !comment.isEmpty()) {
+				List<String> l = Arrays.asList(comment.split(";"));
+				pieceAt.drawCommentText(tooltipX, tooltipY, l);
+			}
+		} else if (!takingScreenshot && tooltip != null && !tooltip.isEmpty())
+			RenderHelper.renderTooltip(tooltipX, tooltipY, tooltip);
 
 		GlStateManager.popMatrix();
 		
 		if(takingScreenshot) {
 			String name = spellNameField.getText();
-			NBTTagCompound cmp = new NBTTagCompound();
-			if(programmer.spell != null)
-				programmer.spell.writeToNBT(cmp);
+			CompoundNBT cmp = new CompoundNBT();
+			if(spell != null)
+				spell.writeToNBT(cmp);
 			String export = cmp.toString();
 			
 			if(shareToReddit)
@@ -471,7 +456,7 @@ public class GuiProgrammer extends GuiScreen {
 	}
 
 
-    @Override
+	@Override
 	public void handleMouseInput() throws IOException {
 		super.handleMouseInput();
 
@@ -489,6 +474,9 @@ public class GuiProgrammer extends GuiScreen {
 
 	@Override
 	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+		if (programmer != null)
+			spell = programmer.spell;
+
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 
 		if(panelEnabled) {
@@ -507,7 +495,7 @@ public class GuiProgrammer extends GuiScreen {
 				if(mouseButton == 1 && !spectator) {
 					if(isShiftKeyDown()) {
 						pushState(true);
-						programmer.spell.grid.gridData[selectedX][selectedY] = null;
+						spell.grid.gridData[selectedX][selectedY] = null;
 						onSpellChanged(false);
 						return;
 					}
@@ -520,6 +508,9 @@ public class GuiProgrammer extends GuiScreen {
 
 	@Override
 	protected void keyTyped(char par1, int par2) throws IOException {
+		if (programmer != null)
+			spell = programmer.spell;
+
 		if(par2 == Keyboard.KEY_ESCAPE) {
 			if(panelEnabled) {
 				closePanel();
@@ -562,7 +553,7 @@ public class GuiProgrammer extends GuiScreen {
 			boolean intercepts = false;
 			SpellPiece piece = null;
 			if(selectedX != -1 && selectedY != -1) {
-				piece = programmer.spell.grid.gridData[selectedX][selectedY];
+				piece = spell.grid.gridData[selectedX][selectedY];
 				if(piece != null && piece.interceptKeystrokes()) {
 					intercepts = true;
 					if(piece.onKeyPressed(par1, par2, false)) {
@@ -580,16 +571,16 @@ public class GuiProgrammer extends GuiScreen {
 			if(!pieceHandled) {
 				if((par2 == Keyboard.KEY_DELETE || par2 == Keyboard.KEY_BACK) && !spellNameField.isFocused()) {
 					if(shift && ctrl) {
-						if(!programmer.spell.grid.isEmpty()) {
+						if(!spell.grid.isEmpty()) {
 							pushState(true);
-							programmer.spell = new Spell();
+							spell = new Spell();
 							spellNameField.setText("");
 							onSpellChanged(false);
 							return;
 						}
 					} if(selectedX != -1 && selectedY != -1 && piece != null) {
 						pushState(true);
-						programmer.spell.grid.gridData[selectedX][selectedY] = null;
+						spell.grid.gridData[selectedX][selectedY] = null;
 						onSpellChanged(false);
 						return;
 					}
@@ -599,7 +590,7 @@ public class GuiProgrammer extends GuiScreen {
 				spellNameField.textboxKeyTyped(par1, par2);
 				String currName = spellNameField.getText();
 				if(!lastName.equals(currName)) {
-					programmer.spell.name = currName;
+					spell.name = currName;
 					onSpellChanged(true);
 				}
 				
@@ -609,44 +600,60 @@ public class GuiProgrammer extends GuiScreen {
 					if(ctrl) {
 						switch(par2) {
 						case Keyboard.KEY_UP:
-							if(programmer.spell.grid.shift(Side.TOP, false)) {
+							if (shift) {
 								pushState(true);
-								programmer.spell.grid.shift(Side.TOP, true);
+								spell.grid.mirrorVertical();
+								onSpellChanged(false);
+							} else if (spell.grid.shift(Side.TOP, false)) {
+								pushState(true);
+								spell.grid.shift(Side.TOP, true);
 								onSpellChanged(false);
 							}
 							break;
 						case Keyboard.KEY_LEFT:
-							if(programmer.spell.grid.shift(Side.LEFT, false)) {
+							if (shift) {
 								pushState(true);
-								programmer.spell.grid.shift(Side.LEFT, true);
+								spell.grid.rotate(false);
+								onSpellChanged(false);
+							} else if (spell.grid.shift(Side.LEFT, false)) {
+								pushState(true);
+								spell.grid.shift(Side.LEFT, true);
 								onSpellChanged(false);
 							}
 							break;
 						case Keyboard.KEY_RIGHT:
-							if(programmer.spell.grid.shift(Side.RIGHT, false)) {
+							if (shift) {
 								pushState(true);
-								programmer.spell.grid.shift(Side.RIGHT, true);
+								spell.grid.rotate(true);
+								onSpellChanged(false);
+							} else if (spell.grid.shift(Side.RIGHT, false)) {
+								pushState(true);
+								spell.grid.shift(Side.RIGHT, true);
 								onSpellChanged(false);
 							}
 							break;
 						case Keyboard.KEY_DOWN:
-							if(programmer.spell.grid.shift(Side.BOTTOM, false)) {
+							if (shift) {
 								pushState(true);
-								programmer.spell.grid.shift(Side.BOTTOM, true);
+								spell.grid.mirrorVertical();
+								onSpellChanged(false);
+							} else if (spell.grid.shift(Side.BOTTOM, false)) {
+								pushState(true);
+								spell.grid.shift(Side.BOTTOM, true);
 								onSpellChanged(false);
 							}
 							break;
 						case Keyboard.KEY_Z:
 							if(!undoSteps.isEmpty()) {
-								redoSteps.add(programmer.spell.copy());
-								programmer.spell = undoSteps.pop();
+								redoSteps.add(spell.copy());
+								spell = undoSteps.pop();
 								onSpellChanged(false);
 							}
 							break;
 						case Keyboard.KEY_Y:
 							if(!redoSteps.isEmpty()) {
 								pushState(false);
-								programmer.spell = redoSteps.pop();
+								spell = redoSteps.pop();
 								onSpellChanged(false);
 							}
 							break;
@@ -658,7 +665,7 @@ public class GuiProgrammer extends GuiScreen {
 							if(piece != null) {
 								clipboard = piece.copy();
 								pushState(true);
-								programmer.spell.grid.gridData[selectedX][selectedY] = null;
+								spell.grid.gridData[selectedX][selectedY] = null;
 								onSpellChanged(false);
 							}
 							break;
@@ -668,7 +675,7 @@ public class GuiProgrammer extends GuiScreen {
 								SpellPiece copy = clipboard.copy();
 								copy.x = selectedX;
 								copy.y = selectedY;
-								programmer.spell.grid.gridData[selectedX][selectedY] = copy;
+								spell.grid.gridData[selectedX][selectedY] = copy;
 								onSpellChanged(false);
 							}
 							break;
@@ -736,7 +743,7 @@ public class GuiProgrammer extends GuiScreen {
 
 	public boolean onSideButtonKeybind(SpellPiece piece, int param, Side side) {
 		if(param > -1 && piece != null && piece.params.size() >= param) {
-			for(GuiButton b : configButtons) {
+			for(Button b : configButtons) {
 				GuiButtonSideConfig config = (GuiButtonSideConfig) b;
 				if(config.matches(param, side)) {
 					if(side != Side.OFF && piece.paramSides.get(piece.params.get(config.paramName)) == side) {
@@ -758,7 +765,10 @@ public class GuiProgrammer extends GuiScreen {
 	}
 
 	@Override
-	protected void actionPerformed(GuiButton button) throws IOException {
+	protected void actionPerformed(Button button) throws IOException {
+		if (programmer != null)
+			spell = programmer.spell;
+
 		super.actionPerformed(button);
 
 		if(button.id == 9000)
@@ -774,11 +784,11 @@ public class GuiProgrammer extends GuiScreen {
 				Matcher matcher = pattern.matcher(pieceName);
 				if(matcher.matches()) {
 					String spellName = matcher.group(1);
-					programmer.spell.name = spellName;
+					spell.name = spellName;
 					spellNameField.setText(spellName);
 				}
 			}
-			programmer.spell.grid.gridData[selectedX][selectedY] = piece;
+			spell.grid.gridData[selectedX][selectedY] = piece;
 			piece.isInGrid = true;
 			piece.x = selectedX;
 			piece.y = selectedY;
@@ -801,9 +811,9 @@ public class GuiProgrammer extends GuiScreen {
 		} else if(button instanceof GuiButtonIO) {
 			if(isShiftKeyDown()) {
 				if(((GuiButtonIO) button).out) {
-					NBTTagCompound cmp = new NBTTagCompound();
-					if(programmer.spell != null)
-						programmer.spell.writeToNBT(cmp);
+					CompoundNBT cmp = new CompoundNBT();
+					if(spell != null)
+						spell.writeToNBT(cmp);
 					setClipboardString(cmp.toString());
 				} else {
 					if(spectator)
@@ -812,27 +822,26 @@ public class GuiProgrammer extends GuiScreen {
 					String cb = getClipboardString();
 					try {
 						cb = cb.replaceAll("([^a-z0-9])\\d+:", "$1"); // backwards compatibility with pre 1.12 nbt json
-						NBTTagCompound cmp = JsonToNBT.getTagFromJson(cb);
-						Spell spell = Spell.createFromNBT(cmp);
+						CompoundNBT cmp = JsonToNBT.getTagFromJson(cb);
+						spell = Spell.createFromNBT(cmp);
 						PlayerData data = PlayerDataHandler.get(mc.player);
 						for(int i = 0; i < SpellGrid.GRID_SIZE; i++)
 							for(int j = 0; j < SpellGrid.GRID_SIZE; j++) {
 								SpellPiece piece = spell.grid.gridData[i][j];
 								if(piece != null) {
 									PieceGroup group = PsiAPI.groupsForPiece.get(piece.getClass());
-									if(!mc.player.capabilities.isCreativeMode && (group == null || !data.isPieceGroupUnlocked(group.name))) {
-										mc.player.sendMessage(new TextComponentTranslation("psimisc.missingPieces").setStyle(new Style().setColor(TextFormatting.RED)));
+									if(!mc.player.capabilities.isCreativeMode && (group == null || !data.isPieceGroupUnlocked(group.name, piece.registryKey))) {
+										mc.player.sendMessage(new TranslationTextComponent("psimisc.missingPieces").setStyle(new Style().setColor(TextFormatting.RED)));
 										return;
 									}
 								}
 							}
 
 						pushState(true);
-						programmer.spell = spell;
 						spellNameField.setText(spell.name);
 						onSpellChanged(false);
 					} catch(Throwable t) {
-						mc.player.sendMessage(new TextComponentTranslation("psimisc.malformedJson", t.getMessage()).setStyle(new Style().setColor(TextFormatting.RED)));
+						mc.player.sendMessage(new TranslationTextComponent("psimisc.malformedJson", t.getMessage()).setStyle(new Style().setColor(TextFormatting.RED)));
 					}
 				}
 			}
@@ -867,30 +876,48 @@ public class GuiProgrammer extends GuiScreen {
 		visiblePieces.clear();
 
 		PlayerData data = PlayerDataHandler.get(mc.player);
+
+		TObjectIntMap<Class<? extends SpellPiece>> rankings = new TObjectIntHashMap<>();
+
+
+		String text = searchField.getText().toLowerCase().trim();
+		boolean noSearchTerms = text.isEmpty();
+
 		for(String key : PsiAPI.spellPieceRegistry.getKeys()) {
 			Class<? extends SpellPiece> clazz = PsiAPI.spellPieceRegistry.getObject(key);
 			PieceGroup group = PsiAPI.groupsForPiece.get(clazz);
-			if(!mc.player.capabilities.isCreativeMode && (group == null || !data.isPieceGroupUnlocked(group.name)))
+			if(!mc.player.capabilities.isCreativeMode && (group == null || !data.isPieceGroupUnlocked(group.name, key)))
 				continue;
 
-			SpellPiece p = SpellPiece.create(clazz, programmer.spell);
-			if(shouldShow(p))
+			SpellPiece p = SpellPiece.create(clazz, spell);
+
+			if (noSearchTerms)
 				p.getShownPieces(visiblePieces);
-		}
-
-		if(visiblePieces.isEmpty()) {
-			try {
-				String text = searchField.getText();
-				if(!text.isEmpty() && text.length() < 5 && !text.matches(".*[FDfd].*")) {
-					Double.parseDouble(text);
-					SpellPiece p = SpellPiece.create(PieceConstantNumber.class, programmer.spell);
-					((PieceConstantNumber) p).valueStr = text;
-					visiblePieces.add(p);
+			else {
+				int rank = ranking(text, p);
+				if (rank > 0) {
+					rankings.put(clazz, rank);
+					p.getShownPieces(visiblePieces);
 				}
-			} catch(NumberFormatException ignored) {}
+			}
 		}
 
-		visiblePieces.sort(Comparator.comparing(SpellPiece::getSortingName));
+		Comparator<SpellPiece> comparator;
+
+		if (noSearchTerms)
+			comparator = Comparator.comparing(SpellPiece::getSortingName);
+		else {
+			comparator = Comparator.comparingInt((p) -> -rankings.get(p.getClass()));
+			comparator = comparator.thenComparing(SpellPiece::getSortingName);
+		}
+
+
+		visiblePieces.sort(comparator);
+		if(!text.isEmpty() && text.length() <= 5 && (text.matches("\\d+(?:\\.\\d*)?") || text.matches("\\d*(?:\\.\\d+)?"))) {
+			SpellPiece p = SpellPiece.create(PieceConstantNumber.class, spell);
+			((PieceConstantNumber) p).valueStr = text;
+			visiblePieces.add(0, p);
+		}
 
 		int start = page * PIECES_PER_PAGE;
 
@@ -912,51 +939,102 @@ public class GuiProgrammer extends GuiScreen {
 		buttonList.addAll(panelButtons);
 	}
 
-	private boolean shouldShow(SpellPiece p) {
-		String searchToken = searchField.getText().toLowerCase();
-		String nameToken = searchToken;
+	/**
+	 * If a piece has a ranking of <= 0, it's excluded from the search.
+	 */
+	private int ranking(String token, SpellPiece p) {
+		int rank = 0;
+		String name = I18n.format(p.getUnlocalizedName()).toLowerCase();
+		String desc = I18n.format(p.getUnlocalizedDesc()).toLowerCase();
 
-		Matcher inMatcher = inPattern.matcher(searchToken);
-		Matcher outMatcher = outPattern.matcher(searchToken);
+		for (String nameToken : token.split("\\s+")) {
+			if (nameToken.isEmpty())
+				continue;
 
-		if(inMatcher.matches()) {
-			String in = inMatcher.group(1);
-			boolean hasIn = false;
-			for(SpellParam param : p.params.values()) {
-				String type = param.getRequiredTypeString().toLowerCase();
-				if(type.contains(in))
-					hasIn = true;
+			if (nameToken.startsWith("in:")) {
+				String clippedToken = nameToken.substring(3);
+				if (clippedToken.isEmpty())
+					continue;
+
+				int maxRank = 0;
+				for(SpellParam param : p.params.values()) {
+					String type = param.getRequiredTypeString().toLowerCase();
+					maxRank = Math.max(maxRank, rankTextToken(type, clippedToken));
+				}
+
+				rank += maxRank;
+			} else if (nameToken.startsWith("out:")) {
+				String clippedToken = nameToken.substring(4);
+				if (clippedToken.isEmpty())
+					continue;
+
+				String type = p.getEvaluationTypeString().toLowerCase();
+
+				rank += rankTextToken(type, clippedToken);
+			} else if (nameToken.startsWith("@")) {
+				String clippedToken = nameToken.substring(1);
+				if (clippedToken.isEmpty())
+					continue;
+
+				String mod = PsiAPI.pieceMods.get(p.getClass());
+				if (mod != null) {
+					int modRank = rankTextToken(mod, clippedToken);
+					if (modRank <= 0)
+						return 0;
+					rank += modRank;
+				} else
+					return 0;
+			} else {
+				int nameRank = rankTextToken(name, nameToken);
+				rank += nameRank;
+				if (nameRank == 0)
+					rank += rankTextToken(desc, nameToken) / 2;
 			}
-
-			if(!hasIn)
-				return false;
-
-			nameToken = inMatcher.group(2);
-		} else if(outMatcher.matches()) {
-			String out = outMatcher.group(1);
-
-			String type = p.getEvaluationTypeString().toLowerCase();
-			if(!type.contains(out))
-				return false;
-
-			nameToken = outMatcher.group(2);
-		}
-		
-		String haystack = I18n.format(p.getUnlocalizedName()).toLowerCase(); 
-		Predicate<String> pred = haystack::contains;
-		
-		if(nameToken == null)
-			nameToken = "";
-		
-		if(nameToken.startsWith("_")) {
-			nameToken = nameToken.substring(1);
-			pred = haystack::endsWith;
-		} else if(nameToken.endsWith("_")) {
-			nameToken = nameToken.substring(0, nameToken.length() - 1);
-			pred = haystack::startsWith;
 		}
 
-		return pred.test(nameToken);
+		return rank;
+	}
+
+	private int rankTextToken(String haystack, String token) {
+		if (token.isEmpty())
+			return 0;
+
+		if(token.startsWith("_")) {
+			String clippedToken = token.substring(1);
+			if (clippedToken.isEmpty())
+				return 0;
+			if (haystack.endsWith(clippedToken)) {
+				if (!Character.isLetterOrDigit(haystack.charAt(haystack.length() - clippedToken.length() - 1)))
+					return clippedToken.length() * 3 / 2;
+				return clippedToken.length();
+			}
+		} else if (token.endsWith("_")) {
+			String clippedToken = token.substring(0, token.length() - 1);
+			if (clippedToken.isEmpty())
+				return 0;
+			if (haystack.startsWith(clippedToken)) {
+				if (!Character.isLetterOrDigit(haystack.charAt(clippedToken.length() + 1)))
+					return clippedToken.length() * 2;
+				return clippedToken.length();
+			}
+		} else {
+			if (token.startsWith("has:"))
+				token = token.substring(4);
+
+			int idx = haystack.indexOf(token);
+			if (idx >= 0) {
+				int multiplier = 2;
+				if (idx == 0 || !Character.isLetterOrDigit(haystack.charAt(idx - 1)))
+					multiplier += 2;
+				if (idx + token.length() + 1 >= haystack.length() ||
+						!Character.isLetterOrDigit(haystack.charAt(idx + token.length() + 1)))
+					multiplier++;
+
+				return token.length() * multiplier / 2;
+			}
+		}
+
+		return 0;
 	}
 
 	private int getPageCount() {
@@ -972,7 +1050,7 @@ public class GuiProgrammer extends GuiScreen {
 	private void closeComment(boolean save) {
 		SpellPiece piece = null;
 		if(selectedX != -1 && selectedY != -1)
-			piece = programmer.spell.grid.gridData[selectedX][selectedY];
+			piece = spell.grid.gridData[selectedX][selectedY];
 			
 		if(save && piece != null) {
 			String text = commentField.getText();
@@ -990,23 +1068,27 @@ public class GuiProgrammer extends GuiScreen {
 	}
 	
 	public void onSpellChanged(boolean nameOnly) {
-		if(!spectator) {
-			MessageSpellModified message = new MessageSpellModified(programmer.getPos(), programmer.spell);
-			NetworkHandler.INSTANCE.sendToServer(message);
+		if (programmer != null) {
+			if (!spectator) {
+				MessageSpellModified message = new MessageSpellModified(programmer.getPos(), spell);
+				NetworkHandler.INSTANCE.sendToServer(message);
+			}
+
+			programmer.spell = spell;
+			programmer.onSpellChanged();
 		}
 
-		programmer.onSpellChanged();
 		onSelectedChanged();
 		spellNameField.setFocused(nameOnly);
 
-		if(!nameOnly || compiler != null && compiler.getError() != null && compiler.getError().equals(SpellCompilationException.NO_NAME) || programmer.spell.name.isEmpty())
-			compiler = new SpellCompiler(programmer.spell);
+		if(!nameOnly || compiler != null && compiler.getError() != null && compiler.getError().equals(SpellCompilationException.NO_NAME) || spell.name.isEmpty())
+			compiler = new SpellCompiler(spell);
 	}
 
 	public void pushState(boolean wipeRedo) {
 		if(wipeRedo)
 			redoSteps.clear();
-		undoSteps.push(programmer.spell.copy());
+		undoSteps.push(spell.copy());
 		if(undoSteps.size() > 25)
 			undoSteps.remove(0);
 	}
@@ -1018,7 +1100,7 @@ public class GuiProgrammer extends GuiScreen {
 		spellNameField.setFocused(false);
 
 		if(selectedX != -1 && selectedY != -1) {
-			SpellPiece piece = programmer.spell.grid.gridData[selectedX][selectedY];
+			SpellPiece piece = spell.grid.gridData[selectedX][selectedY];
 			if(piece != null) {
 				boolean intercept = piece.interceptKeystrokes();
 				spellNameField.setEnabled(!spectator && !intercept);

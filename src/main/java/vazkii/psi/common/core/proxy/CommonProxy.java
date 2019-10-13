@@ -10,10 +10,10 @@
  */
 package vazkii.psi.common.core.proxy;
 
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.translation.I18n;
 import net.minecraft.world.World;
+import net.minecraftforge.fml.common.FMLCommonHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.fml.common.network.NetworkRegistry;
@@ -21,9 +21,10 @@ import vazkii.psi.api.PsiAPI;
 import vazkii.psi.common.Psi;
 import vazkii.psi.common.block.base.ModBlocks;
 import vazkii.psi.common.core.handler.ConfigHandler;
+import vazkii.psi.common.core.handler.CrashReportHandler;
 import vazkii.psi.common.core.handler.InternalMethodHandler;
 import vazkii.psi.common.core.handler.PsiSoundHandler;
-import vazkii.psi.common.core.handler.capability.CapabilityCAD;
+import vazkii.psi.common.core.handler.capability.CapabilityHandler;
 import vazkii.psi.common.crafting.ModCraftingRecipes;
 import vazkii.psi.common.entity.ModEntities;
 import vazkii.psi.common.item.base.ModItems;
@@ -39,6 +40,8 @@ public class CommonProxy {
 	public void preInit(FMLPreInitializationEvent event) {
 		PsiAPI.internalHandler = new InternalMethodHandler();
 
+		FMLCommonHandler.instance().registerCrashCallable(new CrashReportHandler());
+
 		ConfigHandler.init(event.getSuggestedConfigurationFile());
 
 		ModItems.preInit();
@@ -48,7 +51,7 @@ public class CommonProxy {
 		ModCraftingRecipes.init();
 		PsiSoundHandler.init();
 
-		CapabilityCAD.register();
+		CapabilityHandler.register();
 		MessageRegister.init();
 		NetworkRegistry.INSTANCE.registerGuiHandler(Psi.instance, new GuiHandler());
 	}
@@ -58,7 +61,7 @@ public class CommonProxy {
 		ModBlocks.init();
 	}
 
-	public EntityPlayer getClientPlayer() {
+	public PlayerEntity getClientPlayer() {
 		return null;
 	}
 
@@ -163,7 +166,7 @@ public class CommonProxy {
 
 	@SuppressWarnings("deprecation")
 	public String localize(String key, Object... arguments) {
-		return I18n.translateToLocalFormatted(key, arguments);
+		return net.minecraft.util.text.translation.I18n.translateToLocalFormatted(key, arguments);
 	}
 
 }

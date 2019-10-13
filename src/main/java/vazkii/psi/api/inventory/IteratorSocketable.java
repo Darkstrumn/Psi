@@ -11,39 +11,37 @@
 package vazkii.psi.api.inventory;
 
 import net.minecraft.item.ItemStack;
-import vazkii.psi.api.cad.ISocketable;
+import vazkii.psi.api.cad.ISocketableCapability;
 
 import java.util.Iterator;
 
 public class IteratorSocketable implements Iterator<ItemStack> {
 
-    private final ItemStack stack;
-    private final ISocketable socketable;
-    private int index = -1;
-    private boolean removed = false;
+	private final ISocketableCapability socketable;
+	private int index = -1;
+	private boolean removed = false;
 
-    public IteratorSocketable(ItemStack stack) {
-        this.stack = stack;
-        this.socketable = (ISocketable) stack.getItem();
-    }
+	public IteratorSocketable(ISocketableCapability socketable) {
+		this.socketable = socketable;
+	}
 
-    @Override
-    public boolean hasNext() {
-        return socketable.isSocketSlotAvailable(stack, index + 1);
-    }
+	@Override
+	public boolean hasNext() {
+		return socketable.isSocketSlotAvailable(index + 1);
+	}
 
-    @Override
-    public ItemStack next() {
-        removed = false;
-        return socketable.getBulletInSocket(stack, index++);
-    }
+	@Override
+	public ItemStack next() {
+		removed = false;
+		return socketable.getBulletInSocket(index++);
+	}
 
-    @Override
-    public void remove() {
-        if (index < 0 || removed)
-            throw new IllegalStateException();
+	@Override
+	public void remove() {
+		if (index < 0 || removed)
+			throw new IllegalStateException();
 
-        removed = true;
-        socketable.setBulletInSocket(stack, index, ItemStack.EMPTY);
-    }
+		removed = true;
+		socketable.setBulletInSocket(index, ItemStack.EMPTY);
+	}
 }
