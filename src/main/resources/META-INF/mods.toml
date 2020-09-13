@@ -1,12 +1,26 @@
 modLoader="javafml"
-loaderVersion="[25,)"
+loaderVersion="[31,)"
 issueTrackerURL="https://github.com/Vazkii/Psi"
+license="https://psi.vazkii.net/license.php"
 
 [[mods]]
 modId="psi"
 displayName="Psi"
 version="${version}"
-authors="Vazkii, Wiiv, WireSegal, Kamefrede"
+authors="Vazkii, Wiiv, WireSegal, Kamefrede, Williewillus"
 description='''
 Psionic Spellcasting Instruments
 '''
+[[dependencies.psi]]
+    modId="patchouli"
+    mandatory=true
+    versionRange="[1.16-39,)"
+    side="BOTH"
+
+
+[[dependencies.psi]]
+    modId="forge"
+    mandatory=true
+    versionRange="[32.0.98,)"
+    ordering="AFTER"
+    side="BOTH"

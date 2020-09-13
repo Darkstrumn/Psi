@@ -1,20 +1,25 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [16/01/2016, 23:47:11 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.constant;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+
 import net.minecraft.client.Minecraft;
-import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
 import net.minecraft.nbt.CompoundNBT;
-import org.lwjgl.input.Keyboard;
-import vazkii.psi.api.spell.*;
+
+import org.lwjgl.glfw.GLFW;
+
+import vazkii.psi.api.spell.EnumPieceType;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.SpellPiece;
 import vazkii.psi.common.Psi;
 
 public class PieceConstantNumber extends SpellPiece {
@@ -35,25 +40,26 @@ public class PieceConstantNumber extends SpellPiece {
 	}
 
 	@Override
-	public void drawAdditional() {
-		if(valueStr == null || valueStr.isEmpty() || valueStr.length() > 5)
+	public void drawAdditional(MatrixStack ms, IRenderTypeBuffer buffers, int light) {
+		if (valueStr == null || valueStr.isEmpty() || valueStr.length() > 5) {
 			valueStr = "0";
+		}
 
-		Minecraft mc = Minecraft.getMinecraft();
+		Minecraft mc = Minecraft.getInstance();
 		int color = Psi.magical ? 0 : 0xFFFFFF;
 		float efflen = mc.fontRenderer.getStringWidth(valueStr);
 		float scale = 1;
 
-		while(efflen > 16) {
+		while (efflen > 16) {
 			scale++;
 			efflen = mc.fontRenderer.getStringWidth(valueStr) / scale;
 		}
 
-		GlStateManager.pushMatrix();
-		GlStateManager.scale(1F / scale, 1F / scale, 1F);
-		GlStateManager.translate((9 - efflen / 2) * scale, 4 * scale, 0);
-		mc.fontRenderer.drawString(valueStr, 0, 0, color);
-		GlStateManager.popMatrix();
+		ms.push();
+		ms.scale(1F / scale, 1F / scale, 1F);
+		ms.translate((9 - efflen / 2) * scale, 4 * scale, 0);
+		mc.fontRenderer.draw(valueStr, 0, 0, color, false, ms.peek().getModel(), buffers, false, 0, light);
+		ms.pop();
 	}
 
 	@Override
@@ -62,46 +68,83 @@ public class PieceConstantNumber extends SpellPiece {
 	}
 
 	@Override
-	public boolean onKeyPressed(char c, int i, boolean doit) {
-		if("FDfd".indexOf(c) >= 0)
+	public boolean onCharTyped(char character, int keyCode, boolean doit) {
+		if ("FDfd".indexOf(character) >= 0) {
 			return false;
+		}
 
 		String oldStr = valueStr;
 		String newStr = valueStr;
-		if(newStr.equals("0") || newStr.equals("-0")) {
-			if(c == '-')
+		if (newStr.equals("0") || newStr.equals("-0")) {
+			if (character == '-') {
 				newStr = "-0";
-			else if(c != '.')
+			} else if (character != '.') {
 				newStr = newStr.replace("0", "");
+			}
 		}
 
-		if(i == Keyboard.KEY_BACK) {
-			if(newStr.length() == 2 && newStr.startsWith("-"))
-				newStr = "-0";
-			else if(newStr.equals("-"))
-				newStr = "0";
-			else if(!newStr.isEmpty())
-				newStr = newStr.substring(0, newStr.length() - 1);
-		} else if(c != '-')
-			newStr += c;
+		if (character != '-') {
+			newStr += character;
+		}
 
-		if(newStr.isEmpty())
+		if (newStr.isEmpty()) {
 			newStr = "0";
+		}
 		newStr = newStr.trim();
 
-		if(newStr.length() > 5)
+		if (newStr.length() > 5) {
 			return false;
+		}
 
 		String newValueStr;
 		try {
 			Double.parseDouble(newStr);
 			newValueStr = newStr;
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			return false;
 		}
 
-		if(doit)
+		if (doit) {
 			valueStr = newValueStr;
+		}
+
+		return !newValueStr.equals(oldStr);
+	}
+
+	@Override
+	public boolean onKeyPressed(int keyCode, int scanCode, boolean doit) {
+		String oldStr = valueStr;
+		String newStr = valueStr;
+		if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+			if (newStr.length() == 2 && newStr.startsWith("-")) {
+				newStr = "-0";
+			} else if (newStr.equals("-")) {
+				newStr = "0";
+			} else if (!newStr.isEmpty()) {
+				newStr = newStr.substring(0, newStr.length() - 1);
+			}
+		}
+
+		if (newStr.isEmpty()) {
+			newStr = "0";
+		}
+		newStr = newStr.trim();
+
+		if (newStr.length() > 5) {
+			return false;
+		}
+
+		String newValueStr;
+		try {
+			Double.parseDouble(newStr);
+			newValueStr = newStr;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+
+		if (doit) {
+			valueStr = newValueStr;
+		}
 
 		return !newValueStr.equals(oldStr);
 	}
@@ -114,7 +157,7 @@ public class PieceConstantNumber extends SpellPiece {
 	@Override
 	public void writeToNBT(CompoundNBT cmp) {
 		super.writeToNBT(cmp);
-		cmp.setString(TAG_CONSTANT_VALUE, valueStr);
+		cmp.putString(TAG_CONSTANT_VALUE, valueStr);
 	}
 
 	@Override
@@ -130,12 +173,13 @@ public class PieceConstantNumber extends SpellPiece {
 
 	@Override
 	public Object evaluate() {
-		if(valueStr == null || valueStr.isEmpty() || valueStr.length() > 5)
+		if (valueStr == null || valueStr.isEmpty() || valueStr.length() > 5) {
 			valueStr = "0";
+		}
 
 		try {
 			return Double.parseDouble(valueStr);
-		} catch(NumberFormatException e) {
+		} catch (NumberFormatException e) {
 			return 0D;
 		}
 	}

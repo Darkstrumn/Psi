@@ -1,34 +1,29 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [12/01/2016, 16:45:17 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.network.message;
 
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.arl.network.NetworkMessage;
-import vazkii.arl.util.ClientTicker;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
+
 import vazkii.psi.common.Psi;
 import vazkii.psi.common.core.handler.PlayerDataHandler;
 import vazkii.psi.common.core.handler.PlayerDataHandler.PlayerData;
 
-public class MessageDeductPsi extends NetworkMessage<MessageDeductPsi> {
+import java.util.function.Supplier;
 
-	public int prev;
-	public int current;
-	public int cd;
-	public boolean shatter;
+public class MessageDeductPsi {
 
-	public MessageDeductPsi() { }
+	private final int prev;
+	private final int current;
+	private final int cd;
+	private final boolean shatter;
 
 	public MessageDeductPsi(int prev, int current, int cd, boolean shatter) {
 		this.prev = prev;
@@ -37,10 +32,22 @@ public class MessageDeductPsi extends NetworkMessage<MessageDeductPsi> {
 		this.shatter = shatter;
 	}
 
-	@Override
-	@OnlyIn(Dist.CLIENT)
-	public IMessage handleMessage(MessageContext context) {
-		ClientTicker.addAction(() -> {
+	public MessageDeductPsi(PacketBuffer buf) {
+		this.prev = buf.readVarInt();
+		this.current = buf.readVarInt();
+		this.cd = buf.readVarInt();
+		this.shatter = buf.readBoolean();
+	}
+
+	public void encode(PacketBuffer buf) {
+		buf.writeVarInt(prev);
+		buf.writeVarInt(current);
+		buf.writeVarInt(cd);
+		buf.writeBoolean(shatter);
+	}
+
+	public boolean receive(Supplier<NetworkEvent.Context> context) {
+		context.get().enqueueWork(() -> {
 			PlayerEntity player = Psi.proxy.getClientPlayer();
 			if (player != null) {
 				PlayerData data = PlayerDataHandler.get(player);
@@ -52,7 +59,7 @@ public class MessageDeductPsi extends NetworkMessage<MessageDeductPsi> {
 			}
 		});
 
-		return null;
+		return true;
 	}
 
 }

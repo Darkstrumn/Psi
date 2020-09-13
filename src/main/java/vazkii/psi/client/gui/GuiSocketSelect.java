@@ -1,46 +1,46 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [13/01/2016, 23:05:26 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.client.gui;
 
 import com.google.common.collect.ImmutableSet;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.renderer.BufferBuilder;
-import com.mojang.blaze3d.platform.GlStateManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.client.util.InputMappings;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
-import org.lwjgl.input.Keyboard;
-import org.lwjgl.input.Mouse;
+
 import org.lwjgl.opengl.GL11;
-import vazkii.arl.network.NetworkHandler;
-import vazkii.arl.network.NetworkMessage;
+
 import vazkii.psi.api.PsiAPI;
 import vazkii.psi.api.cad.ISocketable;
-import vazkii.psi.api.cad.ISocketableCapability;
 import vazkii.psi.api.cad.ISocketableController;
-import vazkii.psi.client.core.handler.KeybindHandler;
 import vazkii.psi.api.internal.PsiRenderHelper;
+import vazkii.psi.client.core.handler.KeybindHandler;
 import vazkii.psi.common.Psi;
 import vazkii.psi.common.core.handler.PlayerDataHandler;
 import vazkii.psi.common.lib.LibResources;
+import vazkii.psi.common.network.MessageRegister;
 import vazkii.psi.common.network.message.MessageChangeControllerSlot;
 import vazkii.psi.common.network.message.MessageChangeSocketableSlot;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -71,24 +71,27 @@ public class GuiSocketSelect extends Screen {
 	int controlSlot;
 
 	ItemStack socketableStack;
-	ISocketableCapability socketable;
+	ISocketable socketable;
 	List<Integer> slots;
+	final Minecraft mc;
 
 	public GuiSocketSelect(ItemStack stack) {
-		mc = Minecraft.getMinecraft();
-		
+		super(new StringTextComponent(""));
+		mc = Minecraft.getInstance();
+
 		controllerStack = ItemStack.EMPTY;
 		socketableStack = ItemStack.EMPTY;
-		
-		if(ISocketableCapability.isSocketable(stack))
+
+		if (ISocketable.isSocketable(stack)) {
 			setSocketable(stack);
-		else if(stack.getItem() instanceof ISocketableController) {
+		} else if (stack.getItem() instanceof ISocketableController) {
 			controllerStack = stack;
 			controller = (ISocketableController) stack.getItem();
 			controlledStacks = controller.getControlledStacks(mc.player, stack);
 			controlSlot = controller.getDefaultControlSlot(controllerStack);
-			if(controlSlot >= controlledStacks.length)
+			if (controlSlot >= controlledStacks.length) {
 				controlSlot = 0;
+			}
 
 			setSocketable(controlledStacks.length == 0 ? ItemStack.EMPTY : controlledStacks[controlSlot]);
 		}
@@ -96,21 +99,23 @@ public class GuiSocketSelect extends Screen {
 
 	public void setSocketable(ItemStack stack) {
 		slots = new ArrayList<>();
-		if(stack.isEmpty())
+		if (stack.isEmpty()) {
 			return;
+		}
 
 		socketableStack = stack;
-		socketable = ISocketableCapability.socketable(stack);
+		socketable = ISocketable.socketable(stack);
 
-		for(int i = 0; i < ISocketable.MAX_SLOTS; i++)
-			if(socketable.showSlotInRadialMenu(i))
+		for (int i = 0; i < ISocketable.MAX_SLOTS; i++) {
+			if (socketable.showSlotInRadialMenu(i)) {
 				slots.add(i);
+			}
+		}
 	}
 
 	@Override
-	public void drawScreen(int mx, int my, float partialTicks) {
-		super.drawScreen(mx, my, partialTicks);
-
+	public void render(MatrixStack ms, int mx, int my, float partialTicks) {
+		super.render(ms, mx, my, partialTicks);
 
 		int x = width / 2;
 		int y = height / 2;
@@ -122,195 +127,225 @@ public class GuiSocketSelect extends Screen {
 		float step = (float) Math.PI / 180;
 		float degPer = (float) Math.PI * 2 / segments;
 
-		ItemStack cadStack = PsiAPI.getPlayerCAD(Minecraft.getMinecraft().player);
+		ItemStack cadStack = PsiAPI.getPlayerCAD(Minecraft.getInstance().player);
 		slotSelected = -1;
 
 		Tessellator tess = Tessellator.getInstance();
 		BufferBuilder buf = tess.getBuffer();
 
-
-		GlStateManager.disableCull();
-		GlStateManager.disableTexture2D();
-		GlStateManager.enableBlend();
-		GlStateManager.shadeModel(GL11.GL_SMOOTH);
+		RenderSystem.disableCull();
+		RenderSystem.disableTexture();
+		RenderSystem.enableBlend();
+		RenderSystem.shadeModel(GL11.GL_SMOOTH);
 		buf.begin(GL11.GL_TRIANGLE_FAN, DefaultVertexFormats.POSITION_COLOR);
 
-		for(int seg = 0; seg < segments; seg++) {
+		for (int seg = 0; seg < segments; seg++) {
 			boolean mouseInSector = degPer * seg < angle && angle < degPer * (seg + 1);
 			float radius = Math.max(0F, Math.min((timeIn + partialTicks - seg * 6F / segments) * 40F, maxRadius));
-			if (mouseInSector)
+			if (mouseInSector || seg == socketable.getSelectedSlot()) {
 				radius *= 1.025f;
+			}
 
 			int gs = 0x40;
-			if(seg % 2 == 0)
+			if (seg % 2 == 0) {
 				gs += 0x19;
+			}
 			int r = gs;
 			int g = gs;
 			int b = gs;
 			int a = 0x66;
 
+			if (seg == 0) {
+				buf.vertex(x, y, 0).color(r, g, b, a).endVertex();
+			}
 
-			if (seg == 0)
-				buf.pos(x, y, 0).color(r, g, b, a).endVertex();
-
-			if(mouseInSector) {
+			if (mouseInSector) {
 				slotSelected = seg;
 
-				if(!cadStack.isEmpty()) {
+				if (!cadStack.isEmpty()) {
 					int color = Psi.proxy.getColorForCAD(cadStack);
 					r = PsiRenderHelper.r(color);
 					g = PsiRenderHelper.g(color);
 					b = PsiRenderHelper.b(color);
-				} else
+				} else {
 					r = g = b = 0xFF;
+				}
+			} else if (seg == socketable.getSelectedSlot()) {
+				if (!cadStack.isEmpty()) {
+					int color = Psi.proxy.getColorForCAD(cadStack);
+					r = 0xFF - PsiRenderHelper.r(color);
+					g = 0xFF - PsiRenderHelper.g(color);
+					b = 0xFF - PsiRenderHelper.b(color);
+				} else {
+					r = 0x00;
+					g = 0xFF;
+					b = 0x00;
+				}
 			}
 
-			for(float i = 0; i < degPer + step / 2; i += step) {
+			for (float i = 0; i < degPer + step / 2; i += step) {
 				float rad = i + seg * degPer;
 				float xp = x + MathHelper.cos(rad) * radius;
 				float yp = y + MathHelper.sin(rad) * radius;
 
-				if (i == 0)
-					buf.pos(xp, yp, 0).color(r, g, b, a).endVertex();
-				buf.pos(xp, yp, 0).color(r, g, b, a).endVertex();
+				if (i == 0) {
+					buf.vertex(xp, yp, 0).color(r, g, b, a).endVertex();
+				}
+				buf.vertex(xp, yp, 0).color(r, g, b, a).endVertex();
 			}
 		}
 		tess.draw();
 
-		GlStateManager.shadeModel(GL11.GL_FLAT);
-		GlStateManager.enableTexture2D();
+		RenderSystem.shadeModel(GL11.GL_FLAT);
+		RenderSystem.enableTexture();
 
-		for(int seg = 0; seg < segments; seg++) {
+		for (int seg = 0; seg < segments; seg++) {
 			boolean mouseInSector = degPer * seg < angle && angle < degPer * (seg + 1);
 			float radius = Math.max(0F, Math.min((timeIn + partialTicks - seg * 6F / segments) * 40F, maxRadius));
-			if (mouseInSector)
+			if (mouseInSector || seg == socketable.getSelectedSlot()) {
 				radius *= 1.025f;
+			}
 
 			float rad = (seg + 0.5f) * degPer;
 			float xp = x + MathHelper.cos(rad) * radius;
 			float yp = y + MathHelper.sin(rad) * radius;
 
 			ItemStack stack = socketable.getBulletInSocket(seg);
-			if(!stack.isEmpty()) {
+			if (!stack.isEmpty()) {
 				float xsp = xp - 4;
 				float ysp = yp;
-				String name = (mouseInSector ? TextFormatting.UNDERLINE : TextFormatting.RESET) + stack.getDisplayName();
-				int width = fontRenderer.getStringWidth(name);
+				String name = (mouseInSector ? TextFormatting.UNDERLINE : TextFormatting.RESET) + stack.getDisplayName().getString();
+				int width = textRenderer.getStringWidth(name);
 
 				double mod = 0.6;
 				int xdp = (int) ((xp - x) * mod + x);
 				int ydp = (int) ((yp - y) * mod + y);
 
-				mc.getRenderItem().renderItemIntoGUI(stack, xdp - 8, ydp - 8);
+				mc.getItemRenderer().renderItemIntoGUI(stack, xdp - 8, ydp - 8);
 
-				if(xsp < x)
+				if (xsp < x) {
 					xsp -= width - 8;
-				if(ysp < y)
+				}
+				if (ysp < y) {
 					ysp -= 9;
+				}
 
-				fontRenderer.drawStringWithShadow(name, xsp, ysp, 0xFFFFFF);
+				textRenderer.drawWithShadow(ms, name, xsp, ysp, 0xFFFFFF);
+				if (seg == socketable.getSelectedSlot()) {
+					int color = 0x00FF00;
+					if (!cadStack.isEmpty()) {
+						color = 0xFF0000 - Psi.proxy.getColorForCAD(cadStack);
+					}
+					textRenderer.drawWithShadow(ms, I18n.format("psimisc.selected"), xsp + width / 4, ysp + textRenderer.FONT_HEIGHT, color);
+				}
 
 				mod = 0.8;
 				xdp = (int) ((xp - x) * mod + x);
 				ydp = (int) ((yp - y) * mod + y);
 
-				mc.renderEngine.bindTexture(signs[seg]);
-				drawModalRectWithCustomSizedTexture(xdp - 8, ydp - 8, 0, 0, 16, 16, 16, 16);
+				mc.textureManager.bindTexture(signs[seg]);
+				drawTexture(ms, xdp - 8, ydp - 8, 0, 0, 16, 16, 16, 16);
 			}
 		}
 
 		float shift = Math.min(5, timeIn + partialTicks) / 5;
 		float scale = 3 * shift;
-		GlStateManager.enableRescaleNormal();
-		GlStateManager.enableBlend();
-		GlStateManager.tryBlendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-		RenderHelper.enableGUIStandardItemLighting();
+		RenderSystem.enableRescaleNormal();
+		RenderSystem.enableBlend();
+		RenderSystem.blendFuncSeparate(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+		RenderSystem.enableLighting();
+		RenderSystem.enableColorMaterial();
 
-		if(controlledStacks != null && controlledStacks.length > 0) {
+		if (controlledStacks != null && controlledStacks.length > 0) {
 			int xs = width / 2 - 18 * controlledStacks.length / 2;
 			int ys = height / 2;
 
-			for(int i = 0; i < controlledStacks.length; i++) {
+			for (int i = 0; i < controlledStacks.length; i++) {
 				float yoff = 25F + maxRadius;
-				if(i == controlSlot)
+				if (i == controlSlot) {
 					yoff += 5F;
+				}
 
-				GlStateManager.pushMatrix();
-				GlStateManager.translate(0, -yoff * shift, 0F);
-				mc.getRenderItem().renderItemAndEffectIntoGUI(controlledStacks[i], xs + i * 18, ys);
-				GlStateManager.popMatrix();
+				ItemStack stack = controlledStacks[i];
+				float rx = xs + i * 18 + (-yoff * shift);
+				PsiRenderHelper.transferMsToGl(ms, () -> mc.getItemRenderer().renderItemAndEffectIntoGUI(stack, (int) rx, ys));
 			}
 
 		}
 
-		if(!socketableStack.isEmpty()) {
-			GlStateManager.pushMatrix();
-			GlStateManager.scale(scale, scale, scale);
-			mc.getRenderItem().renderItemAndEffectIntoGUI(socketableStack,
-					(int) (x / scale) - 8, (int) (y / scale) - 8);
-			GlStateManager.popMatrix();
+		if (!socketableStack.isEmpty()) {
+			ms.push();
+			ms.scale(scale, scale, scale);
+			PsiRenderHelper.transferMsToGl(ms, () -> mc.getItemRenderer().renderItemAndEffectIntoGUI(socketableStack,
+					(int) (x / scale) - 8, (int) (y / scale) - 8));
+			ms.pop();
 		}
 		RenderHelper.disableStandardItemLighting();
-		GlStateManager.disableBlend();
-		GlStateManager.disableRescaleNormal();
+		RenderSystem.disableBlend();
+		RenderSystem.disableRescaleNormal();
 
 	}
 
 	@Override
-	protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
+	public boolean mouseClicked(double mouseX, double mouseY, int mouseButton) {
 		super.mouseClicked(mouseX, mouseY, mouseButton);
 
-		if(!controllerStack.isEmpty() && controlledStacks.length > 0) {
-			if(mouseButton == 0) {
+		if (!controllerStack.isEmpty() && controlledStacks.length > 0) {
+			if (mouseButton == 0) {
 				controlSlot++;
-				if(controlSlot >= controlledStacks.length)
+				if (controlSlot >= controlledStacks.length) {
 					controlSlot = 0;
-			} else if(mouseButton == 1) {
+				}
+			} else if (mouseButton == 1) {
 				controlSlot--;
-				if(controlSlot < 0)
+				if (controlSlot < 0) {
 					controlSlot = controlledStacks.length - 1;
+				}
 			}
 
 			setSocketable(controlledStacks[controlSlot]);
+			return true;
 		}
+		return false;
 	}
 
 	@Override
-	public void updateScreen() {
-		super.updateScreen();
-
-		if(!isKeyDown(KeybindHandler.keybind)) {
+	public void tick() {
+		super.tick();
+		if (!isKeyDown(KeybindHandler.keybind)) {
 			mc.displayGuiScreen(null);
-			if(slotSelected != -1) {
+			if (slotSelected != -1) {
 				int slot = slots.get(slotSelected);
 				PlayerDataHandler.get(mc.player).stopLoopcast();
 
-				NetworkMessage message;
-				if(!controllerStack.isEmpty())
+				Object message;
+				if (!controllerStack.isEmpty()) {
 					message = new MessageChangeControllerSlot(controlSlot, slot);
-				else message = new MessageChangeSocketableSlot(slot);
-				NetworkHandler.INSTANCE.sendToServer(message);
+				} else {
+					message = new MessageChangeSocketableSlot(slot);
+				}
+				MessageRegister.HANDLER.sendToServer(message);
 			}
 		}
 
-		ImmutableSet<KeyBinding> set = ImmutableSet.of(mc.gameSettings.keyBindForward, mc.gameSettings.keyBindLeft, mc.gameSettings.keyBindBack, mc.gameSettings.keyBindRight, mc.gameSettings.keyBindSneak, mc.gameSettings.keyBindSprint, mc.gameSettings.keyBindJump);
-		for(KeyBinding k : set)
-			KeyBinding.setKeyBindState(k.getKeyCode(), isKeyDown(k));
+		ImmutableSet<KeyBinding> set = ImmutableSet.of(mc.gameSettings.keyBindForward, mc.gameSettings.keyBindLeft, mc.gameSettings.keyBindBack, mc.gameSettings.keyBindRight, mc.gameSettings.keySneak, mc.gameSettings.keyBindSprint, mc.gameSettings.keyBindJump);
+		for (KeyBinding k : set) {
+			KeyBinding.setKeyBindState(k.getKey(), isKeyDown(k));
+		}
 
 		timeIn++;
 	}
 
 	public boolean isKeyDown(KeyBinding keybind) {
-		int key = keybind.getKeyCode();
-		if(key < 0) {
-			int button = 100 + key;
-			return Mouse.isButtonDown(button);
+		InputMappings.Input key = keybind.getKey();
+		if (key.getType() == InputMappings.Type.MOUSE) {
+			return keybind.isKeyDown();
 		}
-		return Keyboard.isKeyDown(key);
+		return InputMappings.isKeyDown(Minecraft.getInstance().getWindow().getHandle(), key.getKeyCode());
 	}
 
 	@Override
-	public boolean doesGuiPauseGame() {
+	public boolean isPauseScreen() {
 		return false;
 	}
 

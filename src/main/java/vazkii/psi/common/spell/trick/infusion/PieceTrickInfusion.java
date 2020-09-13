@@ -1,22 +1,20 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [25/01/2016, 20:16:02 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.trick.infusion;
 
-import net.minecraft.item.ItemStack;
-import vazkii.psi.api.spell.*;
-import vazkii.psi.api.spell.piece.PieceTrick;
-import vazkii.psi.common.item.ItemCAD;
-import vazkii.psi.common.item.base.ModItems;
+import vazkii.psi.api.spell.EnumSpellStat;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellCompilationException;
+import vazkii.psi.api.spell.SpellMetadata;
+import vazkii.psi.api.spell.piece.PieceCraftingTrick;
 
-public class PieceTrickInfusion extends PieceTrick {
+public class PieceTrickInfusion extends PieceCraftingTrick {
 	public PieceTrickInfusion(Spell spell) {
 		super(spell);
 	}
@@ -33,10 +31,7 @@ public class PieceTrickInfusion extends PieceTrick {
 	}
 
 	@Override
-	public Object execute(SpellContext context) {
-		ItemCAD.craft(context.caster, "dustRedstone", new ItemStack(ModItems.material));
-		ItemCAD.craft(context.caster, "ingotGold", new ItemStack(ModItems.material, 1, 1));
-		return null;
+	public boolean canCraft(PieceCraftingTrick trick) {
+		return trick instanceof PieceTrickInfusion;
 	}
-
 }

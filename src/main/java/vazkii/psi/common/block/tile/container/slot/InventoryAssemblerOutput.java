@@ -1,28 +1,24 @@
-/**
- * This class was created by <WireSegal>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [02/01/2019, 21:44:13 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.block.tile.container.slot;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+
 import vazkii.psi.common.block.tile.TileCADAssembler;
 
 import javax.annotation.Nonnull;
 
 /**
  * @author WireSegal
- * Created at 4:44 PM on 1/2/19.
+ *         Created at 4:44 PM on 1/2/19.
  */
 public class InventoryAssemblerOutput implements IInventory {
 
@@ -52,23 +48,6 @@ public class InventoryAssemblerOutput implements IInventory {
 	@Override
 	public ItemStack getStackInSlot(int index) {
 		return getStack();
-	}
-
-	@Nonnull
-	@Override
-	public String getName() {
-		return "Result";
-	}
-
-	@Override
-	public boolean hasCustomName() {
-		return false;
-	}
-
-	@Nonnull
-	@Override
-	public ITextComponent getDisplayName() {
-		return hasCustomName() ? new StringTextComponent(getName()) : new TranslationTextComponent(getName());
 	}
 
 	@Nonnull
@@ -116,21 +95,6 @@ public class InventoryAssemblerOutput implements IInventory {
 	@Override
 	public boolean isItemValidForSlot(int index, @Nonnull ItemStack stack) {
 		return false;
-	}
-
-	@Override
-	public int getField(int id) {
-		return 0;
-	}
-
-	@Override
-	public void setField(int id, int value) {
-		// NO-OP
-	}
-
-	@Override
-	public int getFieldCount() {
-		return 0;
 	}
 
 	@Override

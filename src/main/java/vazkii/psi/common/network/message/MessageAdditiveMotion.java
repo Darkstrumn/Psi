@@ -1,60 +1,63 @@
-/**
- * This class was created by <WireSegal>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
- * <p>
+ *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- * <p>
- * File Created @ [Mar 15, 2019, 10:51 AM (EST)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.network.message;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.arl.network.NetworkMessage;
-import vazkii.arl.util.ClientTicker;
+import net.minecraftforge.fml.network.NetworkEvent;
 
-public class MessageAdditiveMotion extends NetworkMessage<MessageAdditiveMotion> {
+import vazkii.psi.common.Psi;
 
-	public int entityID;
-	public int motionX;
-	public int motionY;
-	public int motionZ;
+import java.util.function.Supplier;
 
-	public MessageAdditiveMotion() {
-		// NO-OP
-	}
+public class MessageAdditiveMotion {
+
+	private final int entityID;
+	private final int motionX;
+	private final int motionY;
+	private final int motionZ;
 
 	public MessageAdditiveMotion(int entityID, double motionX, double motionY, double motionZ) {
 		this.entityID = entityID;
 
-		this.motionX = (int)(MathHelper.clamp(motionX, -3.9, 3.9) * 8000);
-		this.motionY = (int)(MathHelper.clamp(motionY, -3.9, 3.9) * 8000);
-		this.motionZ = (int)(MathHelper.clamp(motionZ, -3.9, 3.9) * 8000);
+		this.motionX = (int) (MathHelper.clamp(motionX, -3.9, 3.9) * 8000);
+		this.motionY = (int) (MathHelper.clamp(motionY, -3.9, 3.9) * 8000);
+		this.motionZ = (int) (MathHelper.clamp(motionZ, -3.9, 3.9) * 8000);
 	}
 
-	@Override
-	@OnlyIn(Dist.CLIENT)
-	public IMessage handleMessage(MessageContext context) {
-		ClientTicker.addAction(() -> {
-			World world = Minecraft.getMinecraft().world;
+	public MessageAdditiveMotion(PacketBuffer buf) {
+		entityID = buf.readVarInt();
+		motionX = buf.readInt();
+		motionY = buf.readInt();
+		motionZ = buf.readInt();
+	}
+
+	public void encode(PacketBuffer buf) {
+		buf.writeVarInt(entityID);
+		buf.writeInt(motionX);
+		buf.writeInt(motionY);
+		buf.writeInt(motionZ);
+	}
+
+	public boolean receive(Supplier<NetworkEvent.Context> context) {
+		context.get().enqueueWork(() -> {
+			World world = Psi.proxy.getClientWorld();
 			if (world != null) {
 				Entity entity = world.getEntityByID(entityID);
 				if (entity != null) {
-					entity.motionX += motionX / 8000.0;
-					entity.motionY += motionY / 8000.0;
-					entity.motionZ += motionZ / 8000.0;
+					entity.setMotion(entity.getMotion().add(motionX / 8000.0, motionY / 8000.0, motionZ / 8000.0));
 				}
 			}
 		});
 
-		return null;
+		return true;
 	}
 }

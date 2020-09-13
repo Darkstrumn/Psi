@@ -1,32 +1,29 @@
-/**
- * This class was created by <ChickenBones>. It's distributed as
- * part of the Botania Mod. Get the Source Code in github:
- * https://github.com/Vazkii/Botania
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
+ * https://github.com/Vazkii/Psi
  *
- * Botania is Open Source and distributed under the
- * Botania License: http://botaniamod.net/license.php
- *
- * File Created @ [? (GMT)]
+ * Psi is Open Source and distributed under the
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.internal;
 
 import net.minecraft.entity.Entity;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.Direction;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.vector.Vector3d;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.util.vector.Vector3f;
-import org.lwjgl.util.vector.Vector4f;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
 
-public class Vector3
-{
+public class Vector3 {
 	public static final Vector3 zero = new Vector3();
 	public static Vector3 one = new Vector3(1, 1, 1);
 	public static Vector3 center = new Vector3(0.5, 0.5, 0.5);
@@ -42,8 +39,7 @@ public class Vector3
 	public double y;
 	public double z;
 
-	public Vector3() {
-	}
+	public Vector3() {}
 
 	public Vector3(double d, double d1, double d2) {
 		x = d;
@@ -57,7 +53,7 @@ public class Vector3
 		z = vec.z;
 	}
 
-	public Vector3(Vec3d vec) {
+	public Vector3(Vector3d vec) {
 		x = vec.x;
 		y = vec.y;
 		z = vec.z;
@@ -68,11 +64,11 @@ public class Vector3
 	}
 
 	public static Vector3 fromEntity(Entity e) {
-		return new Vector3(e.posX, e.posY, e.posZ);
+		return new Vector3(e.getX(), e.getY(), e.getZ());
 	}
 
 	public static Vector3 fromEntityCenter(Entity e) {
-		return new Vector3(e.posX, e.posY - e.getYOffset() + e.height / 2, e.posZ);
+		return new Vector3(e.getX(), e.getY() - e.getYOffset() + e.getHeight() / 2, e.getZ());
 	}
 
 	public static Vector3 fromTileEntity(TileEntity e) {
@@ -85,6 +81,14 @@ public class Vector3
 
 	public static Vector3 fromBlockPos(BlockPos pos) {
 		return new Vector3(pos.getX(), pos.getY(), pos.getZ());
+	}
+
+	public static Vector3 fromVec3d(Vector3d vec3d) {
+		return new Vector3(vec3d.getX(), vec3d.getY(), vec3d.getZ());
+	}
+
+	public static Vector3 fromDirection(Direction direction) {
+		return new Vector3(direction.getXOffset(), direction.getYOffset(), direction.getZOffset());
 	}
 
 	public Vector3 set(double d, double d1, double d2) {
@@ -104,10 +108,11 @@ public class Vector3
 	public double dotProduct(Vector3 vec) {
 		double d = vec.x * x + vec.y * y + vec.z * z;
 
-		if(d > 1 && d < 1.00001)
+		if (d > 1 && d < 1.00001) {
 			d = 1;
-		else if(d < -1 && d > -1.00001)
+		} else if (d < -1 && d > -1.00001) {
 			d = -1;
+		}
 		return d;
 	}
 
@@ -192,21 +197,23 @@ public class Vector3
 
 	public Vector3 normalize() {
 		double d = mag();
-		if(d != 0)
+		if (d != 0) {
 			multiply(1 / d);
+		}
 
 		return this;
 	}
 
 	@Override
 	public String toString() {
-		MathContext cont = new MathContext(4, RoundingMode.HALF_UP);
-		return "Vector[" + new BigDecimal(x, cont) + ", " +new BigDecimal(y, cont) + ", " + new BigDecimal(z, cont) + "]";
+		MathContext cont = new MathContext(5, RoundingMode.HALF_UP);
+		return "Vector[" + new BigDecimal(x, cont) + ", " + new BigDecimal(y, cont) + ", " + new BigDecimal(z, cont) + "]";
 	}
-	
+
 	public Vector3 perpendicular() {
-		if(z == 0)
+		if (z == 0) {
 			return zCrossProduct();
+		}
 		return xCrossProduct();
 	}
 
@@ -238,8 +245,8 @@ public class Vector3
 		return this;
 	}
 
-	public Vec3d toVec3D() {
-		return new Vec3d(x, y, z);
+	public Vector3d toVec3D() {
+		return new Vector3d(x, y, z);
 	}
 
 	public BlockPos toBlockPos() {
@@ -263,16 +270,6 @@ public class Vector3
 	}
 
 	@OnlyIn(Dist.CLIENT)
-	public Vector3f vector3f() {
-		return new Vector3f((float)x, (float)y, (float)z);
-	}
-
-	@OnlyIn(Dist.CLIENT)
-	public Vector4f vector4f() {
-		return new Vector4f((float)x, (float)y, (float)z, 1);
-	}
-
-	@OnlyIn(Dist.CLIENT)
 	public void glVertex() {
 		GL11.glVertex3d(x, y, z);
 	}
@@ -286,17 +283,17 @@ public class Vector3
 
 	public double scalarProject(Vector3 b) {
 		double l = b.mag();
-		return l == 0 ? 0 : dotProduct(b)/l;
+		return l == 0 ? 0 : dotProduct(b) / l;
 	}
 
 	public Vector3 project(Vector3 b) {
 		double l = b.magSquared();
-		if(l == 0) {
+		if (l == 0) {
 			set(0, 0, 0);
 			return this;
 		}
 
-		double m = dotProduct(b)/l;
+		double m = dotProduct(b) / l;
 		set(b).multiply(m);
 		return this;
 	}
@@ -308,10 +305,16 @@ public class Vector3
 
 	@Override
 	public boolean equals(Object o) {
-		if(!(o instanceof Vector3))
+		if (!(o instanceof Vector3)) {
 			return false;
+		}
 
-		Vector3 v = (Vector3)o;
+		Vector3 v = (Vector3) o;
 		return x == v.x && y == v.y && z == v.z;
+	}
+
+	@Override
+	public int hashCode() {
+		return 31 * (31 * (31 + Double.hashCode(x)) + Double.hashCode(y)) + Double.hashCode(z);
 	}
 }

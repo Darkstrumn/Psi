@@ -1,93 +1,113 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [13/01/2016, 16:08:02 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api;
+
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.mojang.serialization.Lifecycle;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.crafting.Ingredient;
-import net.minecraft.util.IItemProvider;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.util.RegistryKey;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvents;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.SimpleRegistry;
-import net.minecraftforge.fml.ModContainer;
-import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.capabilities.CapabilityInject;
+import net.minecraftforge.fml.DistExecutor;
+
+import org.apache.logging.log4j.LogManager;
+
 import vazkii.psi.api.cad.ICAD;
+import vazkii.psi.api.cad.ICADData;
+import vazkii.psi.api.cad.IPsiBarDisplay;
+import vazkii.psi.api.cad.ISocketable;
 import vazkii.psi.api.internal.DummyMethodHandler;
 import vazkii.psi.api.internal.IInternalMethodHandler;
 import vazkii.psi.api.material.PsimetalArmorMaterial;
-import vazkii.psi.api.recipe.TrickRecipe;
-import vazkii.psi.api.spell.PieceGroup;
+import vazkii.psi.api.material.PsimetalToolMaterial;
+import vazkii.psi.api.spell.ISpellAcceptor;
+import vazkii.psi.api.spell.ISpellImmune;
 import vazkii.psi.api.spell.SpellPiece;
+import vazkii.psi.api.spell.detonator.IDetonationHandler;
+import vazkii.psi.common.spell.trick.PieceTrickDebug;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static net.minecraft.util.registry.Registry.createRegistryKey;
 
 public final class PsiAPI {
 
 	/**
 	 * The internal method handler in use. This object allows the API to interact with the mod.
 	 * By default this is a dummy. In the mod itself, this is replaced with an implementation that
-	 * can handle all of its queries.<br><br>
+	 * can handle all of its queries.<br>
+	 * <br>
 	 *
 	 * <b>DO NOT EVER, EVER, OVERWRITE THIS VALUE</b>
 	 */
 	public static IInternalMethodHandler internalHandler = new DummyMethodHandler();
 
+	@CapabilityInject(ISpellImmune.class)
+	public static Capability<ISpellImmune> SPELL_IMMUNE_CAPABILITY = null;
 
-	public static final SimpleRegistry<Class<? extends SpellPiece>> spellPieceRegistry = new SimpleRegistry<>();
-	public static final HashMap<String, ResourceLocation> simpleSpellTextures = new HashMap<>();
-	public static final HashMap<Class<? extends SpellPiece>, PieceGroup> groupsForPiece = new HashMap<>();
-	public static final HashMap<Class<? extends SpellPiece>, String> pieceMods = new HashMap<>();
-	public static final HashMap<String, PieceGroup> groupsForName = new HashMap<>();
+	@CapabilityInject(IDetonationHandler.class)
+	public static Capability<IDetonationHandler> DETONATION_HANDLER_CAPABILITY = null;
 
-	public static final List<TrickRecipe> trickRecipes = new ArrayList<>();
+	@CapabilityInject(IPsiBarDisplay.class)
+	public static Capability<IPsiBarDisplay> PSI_BAR_DISPLAY_CAPABILITY = null;
 
+	@CapabilityInject(ISpellAcceptor.class)
+	public static Capability<ISpellAcceptor> SPELL_ACCEPTOR_CAPABILITY = null;
 
-	public static final PsimetalArmorMaterial PSIMETAL_ARMOR_MATERIAL = new PsimetalArmorMaterial("psimetal", 18, new int[]{2, 6, 5, 2}, 12, SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0F, null);
+	@CapabilityInject(ICADData.class)
+	public static Capability<ICADData> CAD_DATA_CAPABILITY = null;
 
-	public static int levelCap = 1;
+	@CapabilityInject(ISocketable.class)
+	public static Capability<ISocketable> SOCKETABLE_CAPABILITY = null;
 
-	private static String getCurrentModId() {
-        ModContainer activeModContainer = ModLoadingContext.get().getActiveContainer();
-		if (activeModContainer != null)
-            return activeModContainer.getModId();
-		return "minecraft";
+	public static final String MOD_ID = "psi";
+
+	public static final RegistryKey<Registry<Class<? extends SpellPiece>>> SPELL_PIECE_REGISTRY_TYPE_KEY = createRegistryKey("spell_piece_registry_type_key");
+	private static final SimpleRegistry<Class<? extends SpellPiece>> spellPieceRegistry = (SimpleRegistry<Class<? extends SpellPiece>>) Registry.create(SPELL_PIECE_REGISTRY_TYPE_KEY, Lifecycle.stable(), () -> PieceTrickDebug.class);
+	private static final Multimap<ResourceLocation, Class<? extends SpellPiece>> advancementGroups = HashMultimap.create();
+	private static final Map<Class<? extends SpellPiece>, ResourceLocation> advancementGroupsInverse = new HashMap<>();
+	private static final Map<ResourceLocation, Class<? extends SpellPiece>> mainPieceForGroup = new HashMap<>();
+
+	public static final PsimetalArmorMaterial PSIMETAL_ARMOR_MATERIAL = new PsimetalArmorMaterial("psimetal", 18, new int[] { 2, 5, 6, 2 }, 12, SoundEvents.ITEM_ARMOR_EQUIP_IRON, 0F, () -> Ingredient.fromTag(ItemTags.getCollection().func_241834_b(new ResourceLocation("forge", "ingots/psimetal"))), 0.0f);
+	public static final PsimetalToolMaterial PSIMETAL_TOOL_MATERIAL = new PsimetalToolMaterial();
+
+	/**
+	 * Registers a Spell Piece.
+	 */
+	public static void registerSpellPiece(ResourceLocation resourceLocation, Class<? extends SpellPiece> clazz) {
+		PsiAPI.spellPieceRegistry.register(RegistryKey.of(SPELL_PIECE_REGISTRY_TYPE_KEY, resourceLocation), clazz, Lifecycle.stable());
 	}
 
 	/**
-	 * Registers a Spell Piece given its class, by which, it puts it in the registry.
+	 * Registers a spell piece and its texture.
+	 * The spell texture will be set to <code>/assets/(namespace)/textures/spell/(path).png</code>,
+	 * and will be stitched to an atlas for render.<br />
+	 * To use a different path, see {@link ClientPsiAPI#registerPieceTexture}.<br />
+	 * To use custom rendering entirely, call {@link #registerSpellPiece} and override {@link SpellPiece#drawBackground}
+	 * to do your own rendering.
 	 */
-	public static void registerSpellPiece(String key, Class<? extends SpellPiece> clazz) {
-		spellPieceRegistry.register(new ResourceLocation(key), clazz);
-		pieceMods.put(clazz, getCurrentModId());
-	}
-
-	/**
-	 * Registers a spell piece and tries to create its relative texture given the current loading mod.
-	 * The spell texture should be in /assets/(yourmod)/textures/spell/(key).png.<br>
-	 * If you want to put the spell piece elsewhere or use some other type of resource location, feel free to map
-	 * the texture directly through {@link #simpleSpellTextures}.<br>
-	 * As SpellPiece objects can have custom renders, depending on how you wish to handle yours, you might
-	 * not even need to use this. In that case use {@link #registerSpellPiece(String, Class)}
-	 */
-	public static void registerSpellPieceAndTexture(String key, Class<? extends SpellPiece> clazz) {
-		registerSpellPieceAndTexture(key, getCurrentModId(), clazz);
-	}
-
-	private static void registerSpellPieceAndTexture(String key, String mod, Class<? extends SpellPiece> clazz) {
-		registerSpellPiece(key, clazz);
-		
-		String textureName = key.replaceAll("([a-z0-9])([A-Z])", "$1_$2").toLowerCase();
-		simpleSpellTextures.put(key, new ResourceLocation(mod, String.format("textures/spell/%s.png", textureName)));
+	public static void registerSpellPieceAndTexture(ResourceLocation id, Class<? extends SpellPiece> clazz) {
+		registerSpellPiece(id, clazz);
+		DistExecutor.runWhenOn(Dist.CLIENT, () -> () -> ClientPsiAPI.registerPieceTexture(id, new ResourceLocation(id.getNamespace(), "spell/" + id.getPath())));
 	}
 
 	/**
@@ -95,29 +115,16 @@ public final class PsiAPI {
 	 * interface. The "main" parameter defines whether this piece is to be set as the main piece of the respective
 	 * group. The main piece is the one that has to be used for level-up to be registered.
 	 */
-	public static void addPieceToGroup(Class<? extends SpellPiece> clazz, String groupName, boolean main) {
-		if(!groupsForName.containsKey(groupName))
-			addGroup(groupName);
+	public static void addPieceToGroup(Class<? extends SpellPiece> clazz, ResourceLocation resLoc, boolean main) {
+		advancementGroups.put(resLoc, clazz);
+		advancementGroupsInverse.put(clazz, resLoc);
 
-		PieceGroup group = groupsForName.get(groupName);
-		group.addPiece(clazz, main);
-		groupsForPiece.put(clazz, group);
-	}
-
-	/**
-	 * Sets the required groups for a group to be unlocked.
-	 */
-	public static void setGroupRequirements(String groupName, int level, String... reqs) {
-		if(!groupsForName.containsKey(groupName))
-			addGroup(groupName);
-
-		PieceGroup group = groupsForName.get(groupName);
-		group.setRequirements(level, reqs);
-	}
-
-	private static void addGroup(String groupName) {
-		groupsForName.put(groupName, new PieceGroup(groupName));
-		levelCap++;
+		if (main) {
+			if (mainPieceForGroup.containsKey(resLoc)) {
+				LogManager.getLogger(MOD_ID).info("Group " + resLoc + " already has a main piece!");
+			}
+			mainPieceForGroup.put(resLoc, clazz);
+		}
 	}
 
 	/**
@@ -125,15 +132,17 @@ public final class PsiAPI {
 	 * more than one, this will return null.
 	 */
 	public static ItemStack getPlayerCAD(PlayerEntity player) {
-		if(player == null)
+		if (player == null) {
 			return ItemStack.EMPTY;
+		}
 
 		ItemStack cad = ItemStack.EMPTY;
-		for(int i = 0; i < player.inventory.getSizeInventory(); i++) {
+		for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
 			ItemStack stackAt = player.inventory.getStackInSlot(i);
-			if(!stackAt.isEmpty() && stackAt.getItem() instanceof ICAD) {
-				if(!cad.isEmpty())
+			if (!stackAt.isEmpty() && stackAt.getItem() instanceof ICAD) {
+				if (!cad.isEmpty()) {
 					return ItemStack.EMPTY; // Player can only have one CAD
+				}
 
 				cad = stackAt;
 			}
@@ -141,17 +150,19 @@ public final class PsiAPI {
 
 		return cad;
 	}
-	
+
 	public static int getPlayerCADSlot(PlayerEntity player) {
-		if(player == null)
+		if (player == null) {
 			return -1;
+		}
 
 		int slot = -1;
-		for(int i = 0; i < player.inventory.getSizeInventory(); i++) {
+		for (int i = 0; i < player.inventory.getSizeInventory(); i++) {
 			ItemStack stackAt = player.inventory.getStackInSlot(i);
-			if(!stackAt.isEmpty() && stackAt.getItem() instanceof ICAD) {
-				if(slot != -1)
+			if (!stackAt.isEmpty() && stackAt.getItem() instanceof ICAD) {
+				if (slot != -1) {
 					return -1; // Player can only have one CAD
+				}
 
 				slot = i;
 			}
@@ -161,19 +172,51 @@ public final class PsiAPI {
 	}
 
 	public static boolean canCADBeUpdated(PlayerEntity player) {
-		if(player == null)
+		if (player == null) {
 			return false;
+		}
 
-		if(player.openContainer == null)
+		if (player.openContainer == null) {
 			return true;
+		}
 
 		int cadSlot = getPlayerCADSlot(player);
 		return cadSlot < 9 || cadSlot == 40;
 	}
 
-	public static void registerTrickRecipe(String trick, Object input, ItemStack output, ItemStack minAssembly) {
-		//TODO: Someone check if this is correct
-		trickRecipes.add(new TrickRecipe(trick, Ingredient.fromItems((IItemProvider) input), output, minAssembly));
+	public static Class<? extends SpellPiece> getSpellPiece(ResourceLocation key) {
+		return spellPieceRegistry.getOrDefault(key);
 	}
 
+	public static ResourceLocation getSpellPieceKey(Class<? extends SpellPiece> clazz) {
+		return spellPieceRegistry.getKey(clazz);
+	}
+
+	public static Collection<Class<? extends SpellPiece>> getPiecesInAdvancementGroup(ResourceLocation group) {
+		return advancementGroups.get(group);
+	}
+
+	public static ResourceLocation getGroupForPiece(Class<? extends SpellPiece> piece) {
+		return advancementGroupsInverse.get(piece);
+	}
+
+	public static Class<? extends SpellPiece> getMainPieceForGroup(ResourceLocation group) {
+		return mainPieceForGroup.get(group);
+	}
+
+	public static boolean isPieceRegistered(ResourceLocation key) {
+		return spellPieceRegistry.containsKey(key);
+	}
+
+	public static Collection<Class<? extends SpellPiece>> getAllRegisteredSpellPieces() {
+		return spellPieceRegistry.stream().collect(Collectors.toList());
+	}
+
+	public static Collection<ResourceLocation> getAllPieceKeys() {
+		return spellPieceRegistry.keySet();
+	}
+
+	public static SimpleRegistry<Class<? extends SpellPiece>> getSpellPieceRegistry() {
+		return spellPieceRegistry;
+	}
 }

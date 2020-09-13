@@ -1,58 +1,118 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [11/01/2016, 21:58:25 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.network;
 
-import io.netty.buffer.ByteBuf;
-import net.minecraft.nbt.CompoundNBT;
-import net.minecraftforge.fml.common.network.ByteBufUtils;
-import net.minecraftforge.api.distmarker.Dist;
-import vazkii.arl.network.NetworkMessage;
-import vazkii.arl.network.NetworkHandler;
-import vazkii.psi.api.spell.Spell;
-import vazkii.psi.common.network.message.*;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.vector.Vector3d;
+import net.minecraftforge.fml.network.NetworkRegistry;
+import net.minecraftforge.fml.network.PacketDistributor;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
+
+import vazkii.psi.common.lib.LibMisc;
+import vazkii.psi.common.network.message.MessageAdditiveMotion;
+import vazkii.psi.common.network.message.MessageBlink;
+import vazkii.psi.common.network.message.MessageCADDataSync;
+import vazkii.psi.common.network.message.MessageChangeControllerSlot;
+import vazkii.psi.common.network.message.MessageChangeSocketableSlot;
+import vazkii.psi.common.network.message.MessageDataSync;
+import vazkii.psi.common.network.message.MessageDeductPsi;
+import vazkii.psi.common.network.message.MessageEidosSync;
+import vazkii.psi.common.network.message.MessageLoopcastSync;
+import vazkii.psi.common.network.message.MessageParticleTrail;
+import vazkii.psi.common.network.message.MessageSpamlessChat;
+import vazkii.psi.common.network.message.MessageSpellModified;
+import vazkii.psi.common.network.message.MessageTriggerJumpSpell;
+import vazkii.psi.common.network.message.MessageVisualEffect;
 
 public class MessageRegister {
+	private static final String VERSION = "3";
+	public static final SimpleChannel HANDLER = NetworkRegistry.newSimpleChannel(new ResourceLocation(LibMisc.MOD_ID, "main"),
+			() -> VERSION,
+			VERSION::equals,
+			VERSION::equals);
 
-	@SuppressWarnings("unchecked")
 	public static void init() {
-		NetworkHandler.register(MessageLoopcastSync.class, Dist.CLIENT);
-		NetworkHandler.register(MessageDataSync.class, Dist.CLIENT);
-		NetworkHandler.register(MessageEidosSync.class, Dist.CLIENT);
-		NetworkHandler.register(MessageCADDataSync.class, Dist.CLIENT);
-		NetworkHandler.register(MessageDeductPsi.class, Dist.CLIENT);
-		NetworkHandler.register(MessageChangeSocketableSlot.class, Dist.SERVER);
-		NetworkHandler.register(MessageSpellModified.class, Dist.SERVER);
-		NetworkHandler.register(MessageLearnGroup.class, Dist.SERVER);
-		NetworkHandler.register(MessageSkipToLevel.class, Dist.SERVER);
-		NetworkHandler.register(MessageLevelUp.class, Dist.CLIENT);
-		NetworkHandler.register(MessageChangeControllerSlot.class, Dist.SERVER);
-		NetworkHandler.register(MessageTriggerJumpSpell.class, Dist.SERVER);
-		NetworkHandler.register(MessageVisualEffect.class, Dist.CLIENT);
-		NetworkHandler.register(MessageAdditiveMotion.class, Dist.CLIENT);
-		NetworkHandler.register(MessageBlink.class, Dist.CLIENT);
-
-		NetworkMessage.mapHandler(Spell.class, MessageRegister::readSpell, MessageRegister::writeSpell);
+		int id = 0;
+		HANDLER.messageBuilder(MessageLoopcastSync.class, id++)
+				.encoder(MessageLoopcastSync::encode)
+				.decoder(MessageLoopcastSync::new)
+				.consumer(MessageLoopcastSync::receive).add();
+		HANDLER.messageBuilder(MessageDataSync.class, id++)
+				.encoder(MessageDataSync::encode)
+				.decoder(MessageDataSync::new)
+				.consumer(MessageDataSync::receive).add();
+		HANDLER.messageBuilder(MessageEidosSync.class, id++)
+				.encoder(MessageEidosSync::encode)
+				.decoder(MessageEidosSync::new)
+				.consumer(MessageEidosSync::receive).add();
+		HANDLER.messageBuilder(MessageCADDataSync.class, id++)
+				.encoder(MessageCADDataSync::encode)
+				.decoder(MessageCADDataSync::new)
+				.consumer(MessageCADDataSync::receive).add();
+		HANDLER.messageBuilder(MessageDeductPsi.class, id++)
+				.encoder(MessageDeductPsi::encode)
+				.decoder(MessageDeductPsi::new)
+				.consumer(MessageDeductPsi::receive).add();
+		HANDLER.messageBuilder(MessageChangeSocketableSlot.class, id++)
+				.encoder(MessageChangeSocketableSlot::encode)
+				.decoder(MessageChangeSocketableSlot::new)
+				.consumer(MessageChangeSocketableSlot::receive).add();
+		HANDLER.messageBuilder(MessageSpellModified.class, id++)
+				.encoder(MessageSpellModified::encode)
+				.decoder(MessageSpellModified::new)
+				.consumer(MessageSpellModified::receive).add();
+		HANDLER.messageBuilder(MessageChangeControllerSlot.class, id++)
+				.encoder(MessageChangeControllerSlot::encode)
+				.decoder(MessageChangeControllerSlot::new)
+				.consumer(MessageChangeControllerSlot::receive).add();
+		HANDLER.messageBuilder(MessageTriggerJumpSpell.class, id++)
+				.encoder((msg, buf) -> {})
+				.decoder($ -> new MessageTriggerJumpSpell())
+				.consumer(MessageTriggerJumpSpell::receive).add();
+		HANDLER.messageBuilder(MessageVisualEffect.class, id++)
+				.encoder(MessageVisualEffect::encode)
+				.decoder(MessageVisualEffect::new)
+				.consumer(MessageVisualEffect::receive).add();
+		HANDLER.messageBuilder(MessageAdditiveMotion.class, id++)
+				.encoder(MessageAdditiveMotion::encode)
+				.decoder(MessageAdditiveMotion::new)
+				.consumer(MessageAdditiveMotion::receive).add();
+		HANDLER.messageBuilder(MessageBlink.class, id++)
+				.encoder(MessageBlink::encode)
+				.decoder(MessageBlink::new)
+				.consumer(MessageBlink::receive).add();
+		HANDLER.messageBuilder(MessageSpamlessChat.class, id++)
+				.encoder(MessageSpamlessChat::encode)
+				.decoder(MessageSpamlessChat::new)
+				.consumer(MessageSpamlessChat::receive).add();
+		HANDLER.messageBuilder(MessageParticleTrail.class, id++)
+				.encoder(MessageParticleTrail::encode)
+				.decoder(MessageParticleTrail::new)
+				.consumer(MessageParticleTrail::receive).add();
 	}
 
-	private static Spell readSpell(ByteBuf buf) {
-		CompoundNBT cmp = ByteBufUtils.readTag(buf);
-		return Spell.createFromNBT(cmp);
+	public static void writeVec3d(PacketBuffer buf, Vector3d vec3d) {
+		buf.writeDouble(vec3d.x);
+		buf.writeDouble(vec3d.y);
+		buf.writeDouble(vec3d.z);
 	}
 
-	private static void writeSpell(Spell spell, ByteBuf buf) {
-		CompoundNBT cmp = new CompoundNBT();
-		if(spell != null)
-			spell.writeToNBT(cmp);
-
-		ByteBufUtils.writeTag(buf, cmp);
+	public static Vector3d readVec3d(PacketBuffer buf) {
+		return new Vector3d(buf.readDouble(), buf.readDouble(), buf.readDouble());
 	}
-	
+
+	public static void sendToPlayer(Object msg, PlayerEntity player) {
+		ServerPlayerEntity serverPlayer = (ServerPlayerEntity) player;
+		HANDLER.send(PacketDistributor.PLAYER.with(() -> serverPlayer), msg);
+	}
+
 }

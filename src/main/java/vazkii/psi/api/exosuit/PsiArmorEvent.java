@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [21/02/2016, 14:05:54 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.exosuit;
 
@@ -28,6 +26,7 @@ public class PsiArmorEvent extends PlayerEvent {
 	public static final String UNDERWATER = "psi.event.underwater";
 	public static final String ON_FIRE = "psi.event.onFire";
 	public static final String LOW_HP = "psi.event.lowHp";
+	public static final String DETONATE = "psi.event.spell_detonate";
 
 	private static boolean posting = false;
 
@@ -45,12 +44,13 @@ public class PsiArmorEvent extends PlayerEvent {
 		this.damage = damage;
 		this.attacker = attacker;
 
-		if(type.equals(NONE))
+		if (type.equals(NONE)) {
 			throw new IllegalArgumentException("Can't you read?");
+		}
 	}
 
 	public static void post(PsiArmorEvent event) {
-		if(!posting) {
+		if (!posting) {
 			posting = true;
 			MinecraftForge.EVENT_BUS.post(event);
 			posting = false;

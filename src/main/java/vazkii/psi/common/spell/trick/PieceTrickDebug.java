@@ -1,19 +1,19 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [16/01/2016, 16:13:25 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.trick;
 
+import net.minecraft.util.Util;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
 import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
+
 import vazkii.psi.api.spell.Spell;
 import vazkii.psi.api.spell.SpellContext;
 import vazkii.psi.api.spell.SpellMetadata;
@@ -24,8 +24,8 @@ import vazkii.psi.api.spell.piece.PieceTrick;
 
 public class PieceTrickDebug extends PieceTrick {
 
-	SpellParam target;
-	SpellParam number;
+	SpellParam<SpellParam.Any> target;
+	SpellParam<Number> number;
 
 	public PieceTrickDebug(Spell spell) {
 		super(spell);
@@ -44,29 +44,28 @@ public class PieceTrickDebug extends PieceTrick {
 
 	@Override
 	public Object execute(SpellContext context) {
-		Double numberVal = this.<Double>getParamValue(context, number);
+		Number numberVal = this.getParamValue(context, number);
 		Object targetVal = getParamValue(context, target);
 
 		ITextComponent component = new StringTextComponent(String.valueOf(targetVal));
 
-		if(numberVal != null) {
+		if (numberVal != null) {
 			String numStr = "" + numberVal;
-			if(numberVal - numberVal.intValue() == 0) {
+			if (numberVal.doubleValue() - numberVal.intValue() == 0) {
 				int numInt = numberVal.intValue();
 				numStr = "" + numInt;
 			}
 
 			component = new StringTextComponent("[" + numStr + "]")
-					.setStyle(new Style().setColor(TextFormatting.AQUA))
-					.appendSibling(new StringTextComponent(" ")
-							.setStyle(new Style().setColor(TextFormatting.RESET)))
-					.appendSibling(component);
+					.setStyle(Style.EMPTY.withColor(TextFormatting.AQUA))
+					.append(new StringTextComponent(" ")
+							.setStyle(Style.EMPTY.withColor(TextFormatting.RESET)))
+					.append(component);
 		}
 
-		context.caster.sendMessage(component);
+		context.caster.sendMessage(component, Util.NIL_UUID);
 
 		return null;
 	}
-
 
 }

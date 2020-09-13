@@ -1,101 +1,132 @@
-/**
- * This class was created by <Azanor>. It's distributed as
- * part of the Botania Mod. Get the Source Code in github:
- * https://github.com/Vazkii/Botania
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
+ * https://github.com/Vazkii/Psi
  *
- * Botania is Open Source and distributed under the
- * Botania License: http://botaniamod.net/license.php
- *
- * File Created @ [? (GMT)]
+ * Psi is Open Source and distributed under the
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.client.fx;
 
+import com.mojang.blaze3d.systems.RenderSystem;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.particle.IAnimatedSprite;
+import net.minecraft.client.particle.IParticleRenderType;
+import net.minecraft.client.particle.SpriteTexturedParticle;
+import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
-import vazkii.psi.common.lib.LibResources;
+import net.minecraft.client.renderer.texture.AtlasTexture;
+import net.minecraft.client.renderer.texture.Texture;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import net.minecraft.client.world.ClientWorld;
 
-import java.util.ArrayDeque;
-import java.util.Queue;
+import org.lwjgl.opengl.GL11;
 
-public class FXSparkle extends FXQueued {
+import javax.annotation.Nonnull;
 
-	public static final ResourceLocation particles = new ResourceLocation(LibResources.MISC_PARTICLES);
+// https://github.com/Vazkii/Botania/blob/1.15/src/main/java/vazkii/botania/client/fx/FXSparkle.java
+public class FXSparkle extends SpriteTexturedParticle {
 
-	public static final Queue<FXSparkle> queuedRenders = new ArrayDeque<>();
-
-	public final boolean shrink = true;
+	public int multipler;
 	public final int particle = 16;
-	public final int multiplier;
+	private final IAnimatedSprite sprite;
 
-	public FXSparkle(World world, double x, double y, double z, float size, float red, float green, float blue, int m) {
-		super(world, x, y, z, size, red, green, blue, m * 3);
-		multiplier = m;
-	}
-	
-	public void setSpeed(double x, double y, double z) {
-		motionX = x;
-		motionY = y;
-		motionZ = z;
-	}
-
-	public static void dispatchQueuedRenders(Tessellator tessellator) {
-		ParticleRenderDispatcher.sparkleFxCount = 0;
-		FXQueued.dispatchQueuedRenders(tessellator, particles, queuedRenders);
-	}
-
-	public int getMultiplier() {
-		return multiplier;
-	}
-
-	@Override
-	protected float getScale() {
-		float rotation = 0.1F * particleScale;
-		if (shrink)
-			rotation *= (particleMaxAge - particleAge + 1f) / particleMaxAge;
-		return rotation;
+	public FXSparkle(ClientWorld world, double x, double y, double z, float size,
+			float red, float green, float blue, int m, double mx, double my, double mz, IAnimatedSprite sprite) {
+		super(world, x, y, z, 0.0D, 0.0D, 0.0D);
+		particleRed = red;
+		particleGreen = green;
+		particleBlue = blue;
+		particleAlpha = 0.5F;
+		particleGravity = 0;
+		motionX = mx;
+		motionY = my;
+		motionZ = mz;
+		particleScale *= size;
+		maxAge = 3 * m;
+		multipler = m;
+		setSize(0.01F, 0.01F);
+		prevPosX = posX;
+		prevPosY = posY;
+		prevPosZ = posZ;
+		this.sprite = sprite;
+		selectSpriteWithAge(sprite);
 	}
 
 	@Override
-	protected float getMinU() {
-		int part = particle + particleAge / multiplier;
-
-		return (part % 8) / 8f;
+	public float getScale(float partialTicks) {
+		return particleScale * (maxAge - age + 1) / (float) maxAge;
 	}
 
 	@Override
-	protected float getMaxU() {
-		return getMinU() + 1 / 8f;
+	public void tick() {
+		prevPosX = posX;
+		prevPosY = posY;
+		prevPosZ = posZ;
+
+		if (age++ >= maxAge) {
+			setExpired();
+		}
+//		if (!noClip)
+//			pushOutOfBlocks(posX, (getEntityBoundingBox().minY + getEntityBoundingBox().maxY) / 2.0D, posZ);
+
+		posX += motionX;
+		posY += motionY;
+		posZ += motionZ;
+
+		motionX *= 0.9f;
+		motionY *= 0.9f;
+		motionZ *= 0.9f;
+
+		if (onGround) {
+			motionX *= 0.7f;
+			motionZ *= 0.7f;
+		}
 	}
 
+	@Nonnull
 	@Override
-	protected float getMinV() {
-		int part = particle + particleAge / multiplier;
-		return (part >> 3) / 8f;
+	public IParticleRenderType getRenderType() {
+		return NORMAL_RENDER;
 	}
 
-	@Override
-	protected float getMaxV() {
-		return getMinV() + 1 / 8f;
+	private static void beginRenderCommon(BufferBuilder buffer, TextureManager textureManager) {
+		RenderSystem.depthMask(false);
+		RenderSystem.enableBlend();
+		RenderSystem.blendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+		RenderSystem.alphaFunc(GL11.GL_GREATER, 0.003921569F);
+		RenderSystem.disableLighting();
+		textureManager.bindTexture(AtlasTexture.LOCATION_PARTICLES_TEXTURE);
+		Texture tex = textureManager.getTexture(AtlasTexture.LOCATION_PARTICLES_TEXTURE);
+		tex.setBlurMipmapDirect(true, false);
+		buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.PARTICLE_POSITION_TEX_COLOR_LMAP);
 	}
 
-	@Override
-	protected void addToQueue() {
-		queuedRenders.add(this);
+	private static void endRenderCommon() {
+		Minecraft.getInstance().textureManager.getTexture(AtlasTexture.LOCATION_PARTICLES_TEXTURE).restoreLastBlurMipmap();
+		RenderSystem.alphaFunc(GL11.GL_GREATER, 0.1F);
+		RenderSystem.disableBlend();
+		RenderSystem.depthMask(true);
 	}
 
-	@Override
-	protected void incrementQueueCount() {
-		ParticleRenderDispatcher.sparkleFxCount++;
-	}
+	private static final IParticleRenderType NORMAL_RENDER = new IParticleRenderType() {
+		@Override
+		public void beginRender(BufferBuilder bufferBuilder, TextureManager textureManager) {
+			beginRenderCommon(bufferBuilder, textureManager);
+		}
 
-	@Override
-	protected boolean hasSlowdown() {
-		return true;
-	}
+		@Override
+		public void finishRender(Tessellator tessellator) {
+			tessellator.draw();
+			endRenderCommon();
+		}
 
-	@Override
-	protected boolean hasFriction() {
-		return true;
-	}
+		@Override
+		public String toString() {
+			return "psi:sparkle";
+		}
+	};
+
 }

@@ -1,50 +1,62 @@
-/**
- * This class was created by <WireSegal>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [28/02/2016, 20:28:03 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.cad;
 
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
 import net.minecraftforge.common.util.INBTSerializable;
+
 import vazkii.psi.api.internal.Vector3;
 
 public interface ICADData extends INBTSerializable<CompoundNBT> {
-	@CapabilityInject(ICADData.class)
-	Capability<ICADData> CAPABILITY = null;
 
-	//TODO: Check this
-	static boolean hasData(ItemStack stack) {
-		return stack.getCapability(CAPABILITY, null) instanceof ICADData;
-	}
-
-	static ICADData data(ItemStack stack) {
-		return (ICADData) stack.getCapability(CAPABILITY, null);
-	}
-
+	/**
+	 * Gets the total amount of the CAD has been on the player's inventory
+	 */
 	int getTime();
 
+	/**
+	 * Sets the total amount of time the CAD has been on the player's inventory
+	 */
 	void setTime(int time);
 
+	/**
+	 * Gets the total capacity of the CAD's battery
+	 */
 	int getBattery();
 
+	/**
+	 * Sets the battery capacity currently in the CAD
+	 */
 	void setBattery(int battery);
 
+	/**
+	 * Gets the vector in the respective memory slot
+	 */
 	Vector3 getSavedVector(int memorySlot);
 
+	/**
+	 * Sets the vector in the respective memory slot
+	 */
 	void setSavedVector(int memorySlot, Vector3 value);
 
+	/**
+	 * Checks if the CAD should be updated
+	 */
 	boolean isDirty();
 
+	/**
+	 * Marks the CAD as ready to be updated
+	 */
 	void markDirty(boolean isDirty);
 
+	/**
+	 * Serializes the CAD data to be synchronized
+	 */
 	CompoundNBT serializeForSynchronization();
 }

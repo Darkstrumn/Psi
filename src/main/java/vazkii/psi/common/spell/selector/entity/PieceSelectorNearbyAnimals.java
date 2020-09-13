@@ -1,21 +1,22 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [23/01/2016, 00:20:46 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.selector.entity;
 
-import com.google.common.base.Predicate;
-
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.monster.IMob;
-import net.minecraft.entity.passive.IAnimal;
+import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.WaterMobEntity;
+
 import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellContext;
+
+import java.util.function.Predicate;
 
 public class PieceSelectorNearbyAnimals extends PieceSelectorNearby {
 
@@ -24,8 +25,9 @@ public class PieceSelectorNearbyAnimals extends PieceSelectorNearby {
 	}
 
 	@Override
-	public Predicate<Entity> getTargetPredicate() {
-		return (Entity e) -> e instanceof IAnimal && !(e instanceof IMob);
+	public Predicate<Entity> getTargetPredicate(SpellContext context) {
+		// for which classes to check, see ServerWorld despawning when spawn-animals server property is false
+		return (Entity e) -> (e instanceof AnimalEntity || e instanceof WaterMobEntity) && !(e instanceof IMob);
 	}
 
 }

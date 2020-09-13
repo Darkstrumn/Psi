@@ -1,33 +1,37 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [01/02/2016, 19:59:33 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.trick.block;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.material.PushReaction;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.material.PushReaction;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.world.BlockEvent;
-import vazkii.psi.api.PsiAPI;
+
 import vazkii.psi.api.internal.Vector3;
-import vazkii.psi.api.spell.*;
+import vazkii.psi.api.spell.EnumSpellStat;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellCompilationException;
+import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.SpellMetadata;
+import vazkii.psi.api.spell.SpellParam;
+import vazkii.psi.api.spell.SpellRuntimeException;
 import vazkii.psi.api.spell.param.ParamVector;
 import vazkii.psi.api.spell.piece.PieceTrick;
 
 public class PieceTrickMoveBlock extends PieceTrick {
 
-	SpellParam position;
-	SpellParam target;
+	SpellParam<Vector3> position;
+	SpellParam<Vector3> target;
 
 	public PieceTrickMoveBlock(Spell spell) {
 		super(spell);
@@ -49,35 +53,35 @@ public class PieceTrickMoveBlock extends PieceTrick {
 
 	@Override
 	public Object execute(SpellContext context) throws SpellRuntimeException {
+		ItemStack tool = context.getHarvestTool();
 		Vector3 positionVal = this.getParamValue(context, position);
 		Vector3 targetVal = this.getParamValue(context, target);
 
-		if(positionVal == null)
+		if (positionVal == null) {
 			throw new SpellRuntimeException(SpellRuntimeException.NULL_VECTOR);
-		if(!context.isInRadius(positionVal))
+		}
+		if (!context.isInRadius(positionVal)) {
 			throw new SpellRuntimeException(SpellRuntimeException.OUTSIDE_RADIUS);
-
-		ItemStack tool = context.tool;
-		if (tool.isEmpty())
-			tool = PsiAPI.getPlayerCAD(context.caster);
+		}
 
 		World world = context.caster.getEntityWorld();
 		BlockPos pos = positionVal.toBlockPos();
 		BlockState state = world.getBlockState(pos);
-		Block block = state.getBlock();
-		if(world.getTileEntity(pos) != null || state.getPushReaction() != PushReaction.NORMAL ||
-				!block.canSilkHarvest(world, pos, state, context.caster) ||
-				state.getPlayerRelativeBlockHardness(context.caster, world, pos) <= 0 ||
-				!PieceTrickBreakBlock.canHarvestBlock(block, context.caster, world, pos, tool))
+		if (world.getTileEntity(pos) != null || state.getPushReaction() != PushReaction.NORMAL ||
+				state.getBlockHardness(world, pos) == -1 ||
+				!PieceTrickBreakBlock.canHarvestBlock(state, context.caster, world, pos, tool)) {
 			return null;
-		
+		}
+
 		BlockEvent.BreakEvent event = PieceTrickBreakBlock.createBreakEvent(state, context.caster, world, pos, tool);
 		MinecraftForge.EVENT_BUS.post(event);
-		if(event.isCanceled())
+		if (event.isCanceled()) {
 			return null;
-		
-		if(!targetVal.isAxial() || targetVal.isZero())
+		}
+
+		if (!targetVal.isAxial() || targetVal.isZero()) {
 			return null;
+		}
 
 		Vector3 axis = targetVal.normalize();
 		int x = pos.getX() + (int) axis.x;
@@ -86,12 +90,13 @@ public class PieceTrickMoveBlock extends PieceTrick {
 		BlockPos pos1 = new BlockPos(x, y, z);
 		BlockState state1 = world.getBlockState(pos1);
 
-		if(!world.isBlockModifiable(context.caster, pos) || !world.isBlockModifiable(context.caster, pos1))
+		if (!world.isBlockModifiable(context.caster, pos) || !world.isBlockModifiable(context.caster, pos1)) {
 			return null;
-		
-		if(world.isAirBlock(pos1) || state1.getBlock().isReplaceable(world, pos1)) {
+		}
+
+		if (state1.isAir(world, pos1) || state1.getMaterial().isReplaceable()) {
 			world.setBlockState(pos1, state, 1 | 2);
-			world.setBlockToAir(pos);
+			world.removeBlock(pos, false);
 			world.playEvent(2001, pos, Block.getStateId(state));
 		}
 

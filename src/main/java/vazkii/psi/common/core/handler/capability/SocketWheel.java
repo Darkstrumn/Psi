@@ -1,12 +1,10 @@
-/**
- * This class was created by <WireSegal>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
- * <p>
+ *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- * <p>
- * File Created @ [Apr 03, 2019, 15:19 AM (EST)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.core.handler.capability;
 
@@ -14,10 +12,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.common.util.INBTSerializable;
 import net.minecraftforge.items.ItemStackHandler;
-import vazkii.psi.api.cad.ISocketable;
-import vazkii.psi.api.cad.ISocketableCapability;
 
-public class SocketWheel implements ISocketableCapability, INBTSerializable<CompoundNBT> {
+import vazkii.psi.api.cad.ISocketable;
+
+public class SocketWheel implements ISocketable, INBTSerializable<CompoundNBT> {
 
 	private final int size;
 
@@ -31,7 +29,7 @@ public class SocketWheel implements ISocketableCapability, INBTSerializable<Comp
 
 	public SocketWheel(int size) {
 		this.size = size;
-		this.handler =  new ItemStackHandler(size);
+		this.handler = new ItemStackHandler(size);
 	}
 
 	@Override
@@ -65,20 +63,20 @@ public class SocketWheel implements ISocketableCapability, INBTSerializable<Comp
 	}
 
 	@Override
-	public boolean canLoopcast(ItemStack stack) {
+	public boolean canLoopcast() {
 		return false;
 	}
 
 	@Override
 	public CompoundNBT serializeNBT() {
 		CompoundNBT compound = handler.serializeNBT();
-		compound.removeTag("Size");
+		compound.remove("Size");
 		return compound;
 	}
 
 	@Override
 	public void deserializeNBT(CompoundNBT nbt) {
-		nbt.setInteger("Size", size);
+		nbt.putInt("Size", size);
 		handler.deserializeNBT(nbt);
 	}
 }

@@ -1,21 +1,29 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [13/01/2016, 16:58:15 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.internal;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.psi.api.spell.*;
+
+import vazkii.psi.api.spell.CompiledSpell;
+import vazkii.psi.api.spell.ISpellCache;
+import vazkii.psi.api.spell.ISpellCompiler;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.SpellPiece;
 
 import java.util.List;
 
@@ -32,6 +40,12 @@ public interface IInternalMethodHandler {
 	 * params.
 	 */
 	ResourceLocation getProgrammerTexture();
+
+	/**
+	 * Gets the render layer for the programmer.
+	 */
+	@OnlyIn(Dist.CLIENT)
+	RenderType getProgrammerLayer();
 
 	/**
 	 * Gets an instance of a spell compiler. In most cases, you should use {@link #getSpellCache()} instead.
@@ -53,15 +67,19 @@ public interface IInternalMethodHandler {
 	 */
 	void setCrashData(CompiledSpell spell, SpellPiece piece);
 
+	/**
+	 * Renders a tooltip with the specified colors at the given x,y position
+	 */
 	@OnlyIn(Dist.CLIENT)
-	void renderTooltip(int x, int y, List<String> tooltipData, int color, int color2);
+	void renderTooltip(MatrixStack ms, int x, int y, List<ITextComponent> tooltipData, int color, int color2, int width, int height);
 
 	/**
-	 * Localizes a string, with correct behavior on both server and client.
+	 * Creates a CAD with the given components
 	 */
-	String localize(String key, Object... format);
-
 	ItemStack createDefaultCAD(List<ItemStack> components);
 
+	/**
+	 * Creates a CAD with the Assembly ItemStack as a base and the components array as its components
+	 */
 	ItemStack createCAD(ItemStack base, List<ItemStack> components);
 }

@@ -1,48 +1,57 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [03/02/2016, 18:10:29 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.client.gui.button;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.button.Button;
-import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TextFormatting;
-import vazkii.psi.api.internal.TooltipHelper;
-import vazkii.psi.client.gui.GuiProgrammer;
+import net.minecraft.util.text.TranslationTextComponent;
 
-import javax.annotation.Nonnull;
+import vazkii.psi.client.gui.GuiProgrammer;
 
 public class GuiButtonIO extends Button {
 
 	public final boolean out;
 	final GuiProgrammer gui;
 
-	public GuiButtonIO(GuiProgrammer gui, int par2, int par3, boolean out) {
-		super(0, par2, par3, 12, 12, "");
+	public GuiButtonIO(int x, int y, boolean out, GuiProgrammer gui) {
+		super(x, y, 12, 12, StringTextComponent.EMPTY, button -> {});
+		this.out = out;
+		this.gui = gui;
+	}
+
+	public GuiButtonIO(int x, int y, boolean out, GuiProgrammer gui, IPressable pressable) {
+		super(x, y, 12, 12, StringTextComponent.EMPTY, pressable);
 		this.out = out;
 		this.gui = gui;
 	}
 
 	@Override
-	public void drawButton(@Nonnull Minecraft par1Minecraft, int par2, int par3, float pticks) {
-		if(enabled && !gui.takingScreenshot) {
-			hovered = par2 >= x && par3 >= y && par2 < x + width && par3 < y + height;
-			int k = getHoverState(hovered);
+	public void renderButton(MatrixStack ms, int par2, int par3, float pticks) {
+		if (active && !gui.takingScreenshot) {
+			boolean hover = par2 >= x && par3 >= y && par2 < x + width && par3 < y + height;
 
-			par1Minecraft.renderEngine.bindTexture(GuiProgrammer.texture);
-			GlStateManager.color(1F, 1F, 1F, 1F);
-			drawTexturedModalRect(x, y, k == 2 ? 186 : 174, out ? 169 : 181, width, height);
+			Minecraft.getInstance().textureManager.bindTexture(GuiProgrammer.texture);
+			RenderSystem.color4f(1F, 1F, 1F, 1F);
+			drawTexture(ms, x, y, hover ? 186 : 174, out ? 169 : 181, width, height);
 
-			if(k == 2) {
-				gui.tooltip.add((out ? TextFormatting.RED : TextFormatting.BLUE) + TooltipHelper.local(out ? "psimisc.exportToClipboard" : "psimisc.importFromClipboard"));
-				gui.tooltip.add(TextFormatting.GRAY + TooltipHelper.local("psimisc.mustHoldShift"));
+			if (hover) {
+				String key = out ? "psimisc.export_to_clipboard" : "psimisc.import_from_clipboard";
+				TextFormatting color = out ? TextFormatting.RED : TextFormatting.BLUE;
+				ITextComponent tip = new TranslationTextComponent(key).formatted(color);
+				gui.tooltip.add(tip);
+				gui.tooltip.add(new TranslationTextComponent("psimisc.must_hold_shift").formatted(TextFormatting.GRAY));
 			}
 		}
 	}

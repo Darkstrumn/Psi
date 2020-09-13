@@ -1,40 +1,45 @@
-/**
-* This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [21/02/2016, 16:57:14 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.crafting.recipe;
 
 import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.IRecipeSerializer;
+import net.minecraft.item.crafting.SpecialRecipe;
+import net.minecraft.item.crafting.SpecialRecipeSerializer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import vazkii.arl.recipe.ModRecipe;
+
 import vazkii.psi.api.exosuit.ISensorHoldable;
 
 import javax.annotation.Nonnull;
 
-public class SensorRemoveRecipe extends ModRecipe {
+public class SensorRemoveRecipe extends SpecialRecipe {
 
-	public SensorRemoveRecipe() {
-		super(new ResourceLocation("psi", "sensor_remove"));
+	public static final SpecialRecipeSerializer<SensorRemoveRecipe> SERIALIZER = new SpecialRecipeSerializer<>(SensorRemoveRecipe::new);
+
+	public SensorRemoveRecipe(ResourceLocation id) {
+		super(id);
 	}
 
 	@Override
-	public boolean matches(@Nonnull CraftingInventory var1, @Nonnull World var2) {
+	public boolean matches(@Nonnull CraftingInventory inv, @Nonnull World world) {
 		boolean foundHoldable = false;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
-			if(!stack.isEmpty()) {
-				if(!foundHoldable && stack.getItem() instanceof ISensorHoldable && !((ISensorHoldable) stack.getItem()).getAttachedSensor(stack).isEmpty())
+		for (int i = 0; i < inv.getSizeInventory(); i++) {
+			ItemStack stack = inv.getStackInSlot(i);
+			if (!stack.isEmpty()) {
+				if (!foundHoldable && stack.getItem() instanceof ISensorHoldable && !((ISensorHoldable) stack.getItem()).getAttachedSensor(stack).isEmpty()) {
 					foundHoldable = true;
-				else return false;
+				} else {
+					return false;
+				}
 			}
 		}
 
@@ -43,13 +48,14 @@ public class SensorRemoveRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getCraftingResult(@Nonnull CraftingInventory var1) {
+	public ItemStack getCraftingResult(@Nonnull CraftingInventory inv) {
 		ItemStack holdableItem = ItemStack.EMPTY;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
-			if(!stack.isEmpty())
+		for (int i = 0; i < inv.getSizeInventory(); i++) {
+			ItemStack stack = inv.getStackInSlot(i);
+			if (!stack.isEmpty()) {
 				holdableItem = stack;
+			}
 		}
 
 		ItemStack copy = holdableItem.copy();
@@ -61,17 +67,17 @@ public class SensorRemoveRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getRecipeOutput() {
-		return ItemStack.EMPTY;
-	}
-
-	@Override
-	public boolean isDynamic() {
-		return true;
+	public IRecipeSerializer<?> getSerializer() {
+		return SERIALIZER;
 	}
 
 	@Override
 	public boolean canFit(int width, int height) {
+		return true;
+	}
+
+	@Override
+	public boolean isDynamic() {
 		return true;
 	}
 

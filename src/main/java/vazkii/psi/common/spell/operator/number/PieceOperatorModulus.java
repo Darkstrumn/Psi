@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [30/01/2016, 23:13:34 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.operator.number;
 
@@ -21,8 +19,8 @@ import java.math.BigDecimal;
 
 public class PieceOperatorModulus extends PieceOperator {
 
-	SpellParam num1;
-	SpellParam num2;
+	SpellParam<Number> num1;
+	SpellParam<Number> num2;
 
 	public PieceOperatorModulus(Spell spell) {
 		super(spell);
@@ -36,11 +34,12 @@ public class PieceOperatorModulus extends PieceOperator {
 
 	@Override
 	public Object execute(SpellContext context) throws SpellRuntimeException {
-		Double d1 = this.<Double>getParamValue(context, num1);
-		Double d2 = this.<Double>getParamValue(context, num2);
+		double d1 = this.getParamValue(context, num1).doubleValue();
+		double d2 = this.getParamValue(context, num2).doubleValue();
 
-		if (d2 == 0)
+		if (d2 == 0) {
 			throw new SpellRuntimeException(SpellRuntimeException.DIVIDE_BY_ZERO);
+		}
 
 		BigDecimal precise1 = new BigDecimal(d1);
 		BigDecimal precise2 = new BigDecimal(d2);

@@ -1,18 +1,16 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
- * 
+ *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- * 
- * File Created @ [11/03/2016, 19:44:40 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.spell;
 
 import net.minecraft.entity.Entity;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.CapabilityInject;
+
+import vazkii.psi.api.PsiAPI;
 
 /**
  * This interface defines an entity that's immune to spells. Any bosses (IBossDisplayData)
@@ -23,22 +21,10 @@ import net.minecraftforge.common.capabilities.CapabilityInject;
  */
 public interface ISpellImmune {
 
-	@CapabilityInject(ISpellImmune.class)
-	Capability<ISpellImmune> CAPABILITY = null;
-
-	static boolean hasImmunity(Entity entity) {
-        return entity.getCapability(CAPABILITY, null) != null;
-	}
-
-	static ISpellImmune immunity(Entity entity) {
-        return (ISpellImmune) entity.getCapability(CAPABILITY, null);
-	}
-
 	boolean isImmune();
-	
+
 	static boolean isImmune(Entity e) {
-		return !e.isNonBoss() || (hasImmunity(e) &&
-				immunity(e).isImmune());
+		return !e.isNonBoss() || e.getCapability(PsiAPI.SPELL_IMMUNE_CAPABILITY).map(ISpellImmune::isImmune).orElse(false);
 	}
-	
+
 }

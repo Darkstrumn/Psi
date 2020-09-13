@@ -1,25 +1,32 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [16/01/2016, 22:57:27 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.other;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BufferBuilder;
-import com.mojang.blaze3d.platform.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.vertex.IVertexBuilder;
+
+import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.model.RenderMaterial;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.vector.Matrix4f;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.psi.api.internal.TooltipHelper;
-import vazkii.psi.api.spell.*;
+
+import vazkii.psi.api.ClientPsiAPI;
+import vazkii.psi.api.spell.EnumPieceType;
+import vazkii.psi.api.spell.IRedirector;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.SpellParam;
+import vazkii.psi.api.spell.SpellPiece;
 import vazkii.psi.api.spell.param.ParamAny;
 import vazkii.psi.common.lib.LibResources;
 
@@ -27,9 +34,9 @@ import java.util.List;
 
 public class PieceConnector extends SpellPiece implements IRedirector {
 
-	private static final ResourceLocation lines = new ResourceLocation(LibResources.SPELL_CONNECTOR_LINES);
+	public static final ResourceLocation LINES_TEXTURE = new ResourceLocation(LibResources.SPELL_CONNECTOR_LINES);
 
-	public SpellParam target;
+	public SpellParam<SpellParam.Any> target;
 
 	public PieceConnector(Spell spell) {
 		super(spell);
@@ -41,75 +48,84 @@ public class PieceConnector extends SpellPiece implements IRedirector {
 	}
 
 	@Override
-	public String getEvaluationTypeString() {
-		return TooltipHelper.local("psi.datatype.Any");
+	public ITextComponent getEvaluationTypeString() {
+		return new TranslationTextComponent("psi.datatype.any");
 	}
 
 	@Override
 	@OnlyIn(Dist.CLIENT)
-	public void drawAdditional() {
-		drawSide(paramSides.get(target));
+	public void drawAdditional(MatrixStack ms, IRenderTypeBuffer buffers, int light) {
+		drawSide(ms, buffers, light, paramSides.get(target));
 
-		if(isInGrid)
-			for(SpellParam.Dist side : SpellParam.Dist.class.getEnumConstants())
-				if(side.isEnabled()) {
+		if (isInGrid) {
+			for (SpellParam.Side side : SpellParam.Side.class.getEnumConstants()) {
+				if (side.isEnabled()) {
 					SpellPiece piece = spell.grid.getPieceAtSideSafely(x, y, side);
-					if(piece != null)
-						for(SpellParam param : piece.paramSides.keySet()) {
-							SpellParam.Dist paramSide = piece.paramSides.get(param);
-							if(paramSide.getOpposite() == side) {
-								drawSide(side);
+					if (piece != null) {
+						for (SpellParam<?> param : piece.paramSides.keySet()) {
+							SpellParam.Side paramSide = piece.paramSides.get(param);
+							if (paramSide.getOpposite() == side) {
+								drawSide(ms, buffers, light, side);
 								break;
 							}
 						}
+					}
 				}
+			}
+		}
 	}
 
 	@OnlyIn(Dist.CLIENT)
-	public void drawSide(SpellParam.Dist side) {
-		if(side.isEnabled()) {
-			Minecraft mc = Minecraft.getMinecraft();
-			mc.renderEngine.bindTexture(lines);
+	private void drawSide(MatrixStack ms, IRenderTypeBuffer buffers, int light, SpellParam.Side side) {
+		if (side.isEnabled()) {
+			RenderMaterial material = new RenderMaterial(ClientPsiAPI.PSI_PIECE_TEXTURE_ATLAS, LINES_TEXTURE);
+			IVertexBuilder buffer = material.getVertexConsumer(buffers, ignored -> SpellPiece.getLayer());
 
-			double minU = 0;
-			double minV = 0;
-			switch(side) {
+			float minU = 0;
+			float minV = 0;
+			switch (side) {
 			case LEFT:
-				minU = 0.5;
+				minU = 0.5f;
 				break;
-			case RIGHT: break;
+			default:
+			case RIGHT:
+				break;
 			case TOP:
-				minV = 0.5;
+				minV = 0.5f;
 				break;
 			case BOTTOM:
-				minU = 0.5;
-				minV = 0.5;
+				minU = 0.5f;
+				minV = 0.5f;
 				break;
-			default: break;
 			}
 
-			double maxU = minU + 0.5;
-			double maxV = minV + 0.5;
+			float maxU = minU + 0.5f;
+			float maxV = minV + 0.5f;
 
-			GlStateManager.color(1F, 1F, 1F);
-			BufferBuilder wr = Tessellator.getInstance().getBuffer();
-			wr.begin(7, DefaultVertexFormats.POSITION_TEX);
-			wr.pos(0, 16, 0).tex(minU, maxV).endVertex();
-			wr.pos(16, 16, 0).tex(maxU, maxV).endVertex();
-			wr.pos(16, 0, 0).tex(maxU, minV).endVertex();
-			wr.pos(0, 0, 0).tex(minU, minV).endVertex();
-			Tessellator.getInstance().draw();
+			/*
+			See note in SpellPiece#drawBackground for why this chain needs to be split
+			*/
+			Matrix4f mat = ms.peek().getModel();
+			buffer.vertex(mat, 0, 16, 0).color(1F, 1F, 1F, 1F);
+			buffer.texture(minU, maxV).light(light).endVertex();
+			buffer.vertex(mat, 16, 16, 0).color(1F, 1F, 1F, 1F);
+			buffer.texture(maxU, maxV).light(light).endVertex();
+			buffer.vertex(mat, 16, 0, 0).color(1F, 1F, 1F, 1F);
+			buffer.texture(maxU, minV).light(light).endVertex();
+			buffer.vertex(mat, 0, 0, 0).color(1F, 1F, 1F, 1F);
+			buffer.texture(minU, minV).light(light).endVertex();
 		}
 	}
 
 	@Override
 	public void getShownPieces(List<SpellPiece> pieces) {
-		for(SpellParam.Dist side : SpellParam.Dist.class.getEnumConstants())
-			if(side.isEnabled()) {
-				PieceConnector piece = (PieceConnector) copy();
+		for (SpellParam.Side side : SpellParam.Side.class.getEnumConstants()) {
+			if (side.isEnabled()) {
+				PieceConnector piece = (PieceConnector) SpellPiece.create(PieceConnector.class, new Spell());
 				piece.paramSides.put(piece.target, side);
 				pieces.add(piece);
 			}
+		}
 	}
 
 	@Override
@@ -123,7 +139,7 @@ public class PieceConnector extends SpellPiece implements IRedirector {
 	}
 
 	@Override
-	public SpellParam.Dist getRedirectionSide() {
+	public SpellParam.Side getRedirectionSide() {
 		return paramSides.get(target);
 	}
 
@@ -142,6 +158,5 @@ public class PieceConnector extends SpellPiece implements IRedirector {
 	public Object execute(SpellContext context) {
 		return null;
 	}
-
 
 }

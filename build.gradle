@@ -1,20 +1,31 @@
 buildscript {
     repositories {
         maven { url = 'https://files.minecraftforge.net/maven' }
+        maven {
+            url "https://maven.tterrag.com/"
+        }
         jcenter()
         mavenCentral()
+        mavenLocal()
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '3.+', changing: true
     }
 }
+
+plugins {
+    id "com.diffplug.gradle.spotless" version "3.27.2"
+}
+
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'eclipse'
 apply plugin: 'maven'
+apply plugin: 'pmd'
 
 ext.configFile = file('build.properties')
 ext.config = parseConfig(configFile)
 
+def mc_version = "1.16.2"
 version = "${config.version}-${config.build_number}"
 group = "vazkii.${config.mod_id}" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = config.mod_name
@@ -26,31 +37,21 @@ if (System.getenv('BUILD_NUMBER') != null) {
 }
 
 minecraft {
-    // The mappings can be changed at any time, and must be in the following format.
-    // snapshot_YYYYMMDD   Snapshot are built nightly.
-    // stable_#            Stables are built at the discretion of the MCP team.
-    // Use non-default mappings at your own risk. they may not always work.
-    // Simply re-run your setup task after changing the mappings to update your workspace.
+    mappings channel: "snapshot", version: "20200801-mixed-1.16.1"
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    mappings channel: "${config.mapping_channel}", version: "${config.mapping_version}"
-    // makeObfSourceJar = false // an Srg named sources jar is made by default. uncomment this to disable.
-    
-    // accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
-
-    // Default run configurations.
-    // These can be tweaked, removed, or duplicated as needed.
     runs {
         client {
             workingDirectory project.file('run')
 
             // Recommended logging data for a userdev environment
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
+            properties 'fml.earlyprogresswindow': 'false'
 
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
 
             mods {
-                examplemod {
+                psi {
                     source sourceSets.main
                 }
             }
@@ -60,43 +61,95 @@ minecraft {
             workingDirectory project.file('run')
 
             // Recommended logging data for a userdev environment
-            property 'forge.logging.markers', 'SCAN,REGISTRIES,REGISTRYDUMP'
 
             // Recommended logging level for the console
             property 'forge.logging.console.level', 'debug'
-
+            singleInstance(true)
             mods {
-                examplemod {
+                psi {
                     source sourceSets.main
                 }
             }
+        }
+        data {
+            properties 'forge.logging.markers': 'REGISTRIES,REGISTRYDUMP'
+            properties 'forge.logging.console.level': 'debug'
+            properties 'fml.earlyprogresswindow': 'false'
+            workingDirectory project.file('run')
+            mods {
+                psi {
+                    source sourceSets.main
+                }
+            }
+            args '--mod', 'psi', '--all',
+                    '--existing', file('src/main/resources/'),
+                    '--output', file('src/generated/resources/')
         }
     }
 }
 
 repositories {
     maven {
-        // for AutoRegLib
+        // for Patchouli
         name "blamejared"
         url "http://maven.blamejared.com/"
     }
     maven {
         // for JEI
-        name = "promwml16"
+        name "promwml16"
         url "http://dvs1.progwml6.com/files/maven"
+    }
+    maven {
+        //yarn2mcp
+        name "yarn2mcp"
+        url "https://maven.tterrag.com"
     }
 }
 
 dependencies {
-    minecraft "net.minecraftforge:forge:${config.mc_version}-${config.forge_version}"
+    minecraft group: 'net.minecraftforge', name: 'forge', version: "${mc_version}-33.0.5"
 
-    compile "vazkii.arl:AutoRegLib:${config.arl_version}"
-    compileOnly "mezz.jei:${config.jei_version}:api"
-    runtime "mezz.jei:${config.jei_version}"
+    compileOnly fg.deobf("vazkii.patchouli:Patchouli:1.16-40:api")
+    runtimeOnly fg.deobf("vazkii.patchouli:Patchouli:1.16-40")
+
+    compileOnly fg.deobf("mezz.jei:jei-1.16.2:7.1.0.11:api")
+    runtimeOnly fg.deobf("mezz.jei:jei-1.16.2:7.1.0.11")
+
 }
 
+spotless {
+    enforceCheck = false // workaround around jenkins having wrong line endings in some files
+    // we explicitly check in github actions builds
+    java {
+        targetExclude '**/Gamma.java'
+
+        indentWithTabs()
+        licenseHeaderFile( 'spotless/license_template.txt')
+        eclipse().configFile 'spotless/eclipseformat.xml'
+        removeUnusedImports()
+        importOrderFile 'spotless/eclipse.importorder'
+    }
+}
+
+pmd {
+    toolVersion '6.22.0'
+    incrementalAnalysis.set(true)
+    ruleSets.clear()
+    ruleSetFiles = files("spotless/pmd-ruleset.xml")
+}
+
+
+task checkSyntax {
+    dependsOn spotlessJavaCheck, pmdMain
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+}
+
+
 processResources {
-    // replace stuff in mcmod.info, nothing else
+    // replace stuff in mods.toml, nothing else
     from(sourceSets.main.resources.srcDirs) {
         include 'META-INF/mods.toml'
 
@@ -110,33 +163,29 @@ processResources {
     }
 }
 
+task srcJar(type: Jar) {
+    from(sourceSets.main.java)
+    classifier = 'sources'
+}
+
+task apiJar(type: Jar) {
+    // Remove sources from the api jar when MinecraftForge/ForgeGradle#369 is fixed
+    from(sourceSets.main.allJava)
+    from(sourceSets.main.output)
+    include 'vazkii/psi/api/**'
+
+    classifier = 'api'
+}
+
+artifacts {
+    archives srcJar, apiJar
+}
+
 task incrementBuildNumber {
     doFirst {
         config.build_number = (config.build_number.toString().toInteger()) + 1
         configFile.withWriter {
             config.toProperties().store(it, "")
-        }
-    }
-
-    //file('web/versions.ini').append("\n${version}=${minecraft.version}")
-    //file("${config.dir_repo}/version/${minecraft.version}.txt").write("${version}")
-}
-
-import java.util.regex.Pattern
-task sortArtifacts(type: Copy) {
-    from jar.destinationDir
-    into config.dir_output
-    //Put each jar with a classifier in a subfolder with the classifier as its name
-    eachFile {
-        //This matcher is used to get the classifier of the jar
-        def matcher = Pattern.compile(Pattern.quote("$config.mod_name-$version") + "-(?<classifier>\\w+).jar").matcher(it.name)
-        //Only change the destination for full matches, i.e jars with classifiers
-        if (matcher.matches())
-        {
-            def classifier = matcher.group('classifier')
-            /* Set the relative path to change the destination, since 
-             * Gradle doesn't seem to like the absolute path being set*/
-            it.relativePath = it.relativePath.parent.append(false, classifier, it.name)
         }
     }
 }
@@ -153,15 +202,15 @@ jar {
     //rename the default output, for some better... sanity with scipts
     archiveName = "${baseName} ${version}.${extension}"
 
-     manifest {
+    manifest {
         attributes([
-            "Specification-Title": "${config.mod_id}",
-            "Specification-Vendor": "vazkii",
-            "Specification-Version": "1", // We are version 1 of ourselves
-            "Implementation-Title": "${config.mod_id}",
-            "Implementation-Version": "${version}",
-            "Implementation-Vendor" :"vazkii",
-            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                "Specification-Title": "${config.mod_id}",
+                "Specification-Vendor": "vazkii",
+                "Specification-Version": "1", // We are version 1 of ourselves
+                "Implementation-Title": "${config.mod_id}",
+                "Implementation-Version": "${version}",
+                "Implementation-Vendor" :"vazkii",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
         ])
     }
 
@@ -171,9 +220,6 @@ jar {
     exclude "**/unused"
 }
 
-//artifacts {
-//    archives deobfJar
-//}
 
 uploadArchives {
     repositories {
@@ -183,4 +229,4 @@ uploadArchives {
     }
 }
 
-defaultTasks 'clean', 'build', 'sortArtifacts', 'incrementBuildNumber'
+defaultTasks 'clean', 'runData', 'checkSyntax', 'build', 'incrementBuildNumber'

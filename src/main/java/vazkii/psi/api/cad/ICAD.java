@@ -1,40 +1,45 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [09/01/2016, 17:08:06 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.cad;
 
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundNBT;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.arl.util.ItemNBTHelper;
+
 import vazkii.psi.api.internal.Vector3;
 import vazkii.psi.api.spell.SpellRuntimeException;
+import vazkii.psi.api.spell.piece.PieceCraftingTrick;
 
 /**
  * Base interface for a CAD. You probably shouldn't implement this,
  * unless you absolutely know what you are doing.
  */
-public interface ICAD extends ISocketable {
+public interface ICAD {
 
 	String TAG_COMPONENT_PREFIX = "component";
 
+	/**
+	 * Sets the component stack inside the CAD's respective component slot
+	 */
+
 	static void setComponent(ItemStack stack, ItemStack componentStack) {
-		if(!componentStack.isEmpty() && componentStack.getItem() instanceof ICADComponent) {
+		if (!componentStack.isEmpty() && componentStack.getItem() instanceof ICADComponent) {
 			ICADComponent component = (ICADComponent) componentStack.getItem();
 			EnumCADComponent componentType = component.getComponentType(componentStack);
 			String name = TAG_COMPONENT_PREFIX + componentType.name();
 
 			CompoundNBT cmp = new CompoundNBT();
-            componentStack.write(cmp);
-			ItemNBTHelper.setCompound(stack, name, cmp);
+			componentStack.write(cmp);
+
+			stack.getOrCreateTag().put(name, cmp);
 		}
 	}
 
@@ -76,20 +81,30 @@ public interface ICAD extends ISocketable {
 	 * Gets how many vectors this CAD can store in memory.
 	 */
 	int getMemorySize(ItemStack stack);
-	
+
 	void setStoredVector(ItemStack stack, int memorySlot, Vector3 vec) throws SpellRuntimeException;
-	
+
 	Vector3 getStoredVector(ItemStack stack, int memorySlot) throws SpellRuntimeException;
 
 	int getTime(ItemStack stack);
 
 	void incrementTime(ItemStack stack);
-	
+
 	/**
 	 * Gets the color of the spells projected by this CAD. Usually just goes back
 	 * to ICADColorizer.getColor().
 	 */
 	@OnlyIn(Dist.CLIENT)
 	int getSpellColor(ItemStack stack);
+
+	/**
+	 * Performs crafting around the player using this CAD.
+	 *
+	 * @param cad    Stack casting the spell
+	 * @param entity Player casting the spell
+	 * @param trick  The trick used to craft
+	 * @return Whether crafting was successful
+	 */
+	boolean craft(ItemStack cad, PlayerEntity entity, PieceCraftingTrick trick);
 
 }

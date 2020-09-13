@@ -1,21 +1,26 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [17/01/2016, 19:09:50 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.spell.piece;
 
-import vazkii.psi.api.spell.*;
+import vazkii.psi.api.spell.EnumPieceType;
+import vazkii.psi.api.spell.EnumSpellStat;
+import vazkii.psi.api.spell.IErrorCatcher;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.SpellMetadata;
+import vazkii.psi.api.spell.SpellParam;
+import vazkii.psi.api.spell.SpellPiece;
 import vazkii.psi.api.spell.param.ParamAny;
 
 public abstract class PieceErrorHandler extends SpellPiece implements IErrorCatcher {
 
-	protected SpellParam piece;
+	protected SpellParam<SpellParam.Any> piece;
 
 	public PieceErrorHandler(Spell spell) {
 		super(spell);
@@ -32,7 +37,7 @@ public abstract class PieceErrorHandler extends SpellPiece implements IErrorCatc
 	}
 
 	@Override
-	public void addToMetadata(SpellMetadata meta) throws SpellCompilationException {
+	public void addToMetadata(SpellMetadata meta) {
 		meta.addStat(EnumSpellStat.COMPLEXITY, 1);
 	}
 
@@ -42,14 +47,19 @@ public abstract class PieceErrorHandler extends SpellPiece implements IErrorCatc
 	}
 
 	@Override
-	public Object execute(SpellContext context) throws SpellRuntimeException {
+	public Object execute(SpellContext context) {
 		return null;
 	}
 
 	@Override
 	public Class<?> getEvaluationType() {
-		return Null.class;
+		return Void.class;
 	}
 
 	protected abstract String paramName();
+
+	@Override
+	public boolean catchParam(SpellParam<?> param) {
+		return param == piece;
+	}
 }

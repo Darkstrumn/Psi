@@ -1,50 +1,56 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [31/01/2016, 18:46:31 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.crafting.recipe;
 
 import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.IRecipeSerializer;
+import net.minecraft.item.crafting.SpecialRecipe;
+import net.minecraft.item.crafting.SpecialRecipeSerializer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
-import vazkii.arl.recipe.ModRecipe;
+
 import vazkii.psi.api.spell.Spell;
 import vazkii.psi.common.item.ItemSpellDrive;
 
 import javax.annotation.Nonnull;
 
-public class DriveDuplicateRecipe extends ModRecipe {
+public class DriveDuplicateRecipe extends SpecialRecipe {
+	public static final SpecialRecipeSerializer<DriveDuplicateRecipe> SERIALIZER = new SpecialRecipeSerializer<>(DriveDuplicateRecipe::new);
 
-	public DriveDuplicateRecipe() {
-		super(new ResourceLocation("psi", "drive_duplicate"));
+	public DriveDuplicateRecipe(ResourceLocation id) {
+		super(id);
 	}
 
 	@Override
-	public boolean matches(@Nonnull CraftingInventory var1, @Nonnull World var2) {
+	public boolean matches(@Nonnull CraftingInventory inv, @Nonnull World world) {
 		boolean foundSource = false;
 		boolean foundTarget = false;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
-			if(!stack.isEmpty()) {
-				if( stack.getItem() instanceof ItemSpellDrive) {
-					if(ItemSpellDrive.getSpell(stack) == null) {
-						if(foundTarget)
+		for (int i = 0; i < inv.getSizeInventory(); i++) {
+			ItemStack stack = inv.getStackInSlot(i);
+			if (!stack.isEmpty()) {
+				if (stack.getItem() instanceof ItemSpellDrive) {
+					if (ItemSpellDrive.getSpell(stack) == null) {
+						if (foundTarget) {
 							return false;
+						}
 						foundTarget = true;
 					} else {
-						if(foundSource)
+						if (foundSource) {
 							return false;
+						}
 						foundSource = true;
 					}
-				} else return false;
+				} else {
+					return false;
+				}
 			}
 		}
 
@@ -53,17 +59,19 @@ public class DriveDuplicateRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getCraftingResult(@Nonnull CraftingInventory var1) {
+	public ItemStack getCraftingResult(@Nonnull CraftingInventory inv) {
 		Spell source = null;
 		ItemStack target = ItemStack.EMPTY;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
-			if(!stack.isEmpty()) {
+		for (int i = 0; i < inv.getSizeInventory(); i++) {
+			ItemStack stack = inv.getStackInSlot(i);
+			if (!stack.isEmpty()) {
 				Spell spell = ItemSpellDrive.getSpell(stack);
-				if(spell != null)
+				if (spell != null) {
 					source = spell;
-				else target = stack;
+				} else {
+					target = stack;
+				}
 			}
 		}
 
@@ -74,17 +82,17 @@ public class DriveDuplicateRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getRecipeOutput() {
-		return ItemStack.EMPTY;
-	}
-
-	@Override
-	public boolean isDynamic() {
-		return true;
+	public IRecipeSerializer<?> getSerializer() {
+		return SERIALIZER;
 	}
 
 	@Override
 	public boolean canFit(int width, int height) {
+		return true;
+	}
+
+	@Override
+	public boolean isDynamic() {
 		return true;
 	}
 }

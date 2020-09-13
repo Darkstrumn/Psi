@@ -1,59 +1,85 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [08/01/2016, 21:19:53 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common;
 
-import net.minecraftforge.fml.common.Loader;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
+import net.minecraftforge.fml.CrashReportExtender;
+import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.fml.ModList;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
-import net.minecraftforge.fml.common.Mod.Instance;
-import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
+import net.minecraftforge.registries.ForgeRegistries;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import vazkii.psi.common.command.CommandPsiLearn;
-import vazkii.psi.common.command.CommandPsiUnlearn;
-import vazkii.psi.common.core.proxy.CommonProxy;
-import vazkii.psi.common.lib.LibMisc;
 
-@Mod(modid = LibMisc.MOD_ID, name = LibMisc.MOD_NAME, version = LibMisc.VERSION, guiFactory = LibMisc.GUI_FACTORY, dependencies = LibMisc.DEPENDENCIES)
+import vazkii.psi.api.PsiAPI;
+import vazkii.psi.client.core.proxy.ClientProxy;
+import vazkii.psi.common.core.handler.ConfigHandler;
+import vazkii.psi.common.core.handler.CrashReportHandler;
+import vazkii.psi.common.core.handler.InternalMethodHandler;
+import vazkii.psi.common.core.proxy.IProxy;
+import vazkii.psi.common.core.proxy.ServerProxy;
+import vazkii.psi.common.item.component.DefaultStats;
+import vazkii.psi.common.lib.LibMisc;
+import vazkii.psi.common.network.MessageRegister;
+import vazkii.psi.common.spell.base.ModSpellPieces;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Mod(LibMisc.MOD_ID)
 public class Psi {
 
 	public static final Logger logger = LogManager.getLogger(LibMisc.MOD_ID);
 
-	@Instance(LibMisc.MOD_ID)
 	public static Psi instance;
-	
 	public static boolean magical;
+	public static IProxy proxy;
+	public static List<SoundEvent> noteblockSoundEvents = new ArrayList<>();
 
-	@SidedProxy(serverSide = LibMisc.PROXY_COMMON, clientSide = LibMisc.PROXY_CLIENT)
-	public static CommonProxy proxy;
-
-	@EventHandler
-	public void preInit(FMLPreInitializationEvent event) {
-		magical = Loader.isModLoaded("magipsi");
-		proxy.preInit(event);
-	}
-	
-	@EventHandler
-	public void init(FMLInitializationEvent event) {
-		proxy.init(event);
+	public Psi() {
+		instance = this;
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetup);
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
+		ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, ConfigHandler.CLIENT_SPEC);
+		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, ConfigHandler.COMMON_SPEC);
+		proxy = DistExecutor.runForDist(() -> ClientProxy::new, () -> ServerProxy::new);
+		proxy.registerHandlers();
 	}
 
-	@EventHandler
-	public void serverStartingEvent(FMLServerStartingEvent event) {
-		event.registerServerCommand(new CommandPsiLearn());
-		event.registerServerCommand(new CommandPsiUnlearn());
-//		event.registerServerCommand(new CommandDownloadLatest());
+	private void commonSetup(FMLCommonSetupEvent event) {
+		magical = ModList.get().isLoaded("magipsi");
+		PsiAPI.internalHandler = new InternalMethodHandler();
+
+		CrashReportExtender.registerCrashCallable(new CrashReportHandler());
+
+		DefaultStats.registerStats();
+		ModSpellPieces.init();
+		MessageRegister.init();
+	}
+
+	private void loadComplete(FMLLoadCompleteEvent event) {
+		ForgeRegistries.SOUND_EVENTS.forEach(el -> {
+			if (el.getRegistryName().getPath().toLowerCase().startsWith("block.note_block")) {
+				noteblockSoundEvents.add(el);
+			}
+		});
+	}
+
+	public static ResourceLocation location(String path) {
+		return new ResourceLocation(LibMisc.MOD_ID, path);
 	}
 
 }

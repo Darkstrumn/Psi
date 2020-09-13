@@ -1,49 +1,57 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [14/01/2016, 22:48:01 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.network.message;
 
 import net.minecraft.entity.player.ServerPlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.Hand;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import vazkii.arl.network.NetworkMessage;
-import vazkii.psi.api.cad.ISocketableCapability;
+import net.minecraftforge.fml.network.NetworkEvent;
+
+import vazkii.psi.api.PsiAPI;
 import vazkii.psi.common.core.handler.PlayerDataHandler;
 
-public class MessageChangeSocketableSlot extends NetworkMessage<MessageChangeSocketableSlot> {
+import java.util.function.Supplier;
 
-	public int slot;
+public class MessageChangeSocketableSlot {
 
-	public MessageChangeSocketableSlot() { }
+	private final int slot;
 
 	public MessageChangeSocketableSlot(int slot) {
 		this.slot = slot;
 	}
 
-	@Override
-	public IMessage handleMessage(MessageContext context) {
-		ServerPlayerEntity player = context.getServerHandler().player;
-		ItemStack stack = player.getHeldItem(Hand.MAIN_HAND);
+	public MessageChangeSocketableSlot(PacketBuffer buf) {
+		this.slot = buf.readVarInt();
+	}
 
-		if(!stack.isEmpty() && ISocketableCapability.isSocketable(stack))
-			ISocketableCapability.socketable(stack).setSelectedSlot(slot);
-		else {
-			stack = player.getHeldItem(Hand.OFF_HAND);
-			if(!stack.isEmpty() && ISocketableCapability.isSocketable(stack))
-				ISocketableCapability.socketable(stack).setSelectedSlot(slot);
-		}
-		PlayerDataHandler.get(player).stopLoopcast();
+	public void encode(PacketBuffer buf) {
+		buf.writeVarInt(slot);
+	}
 
-		return null;
+	public boolean receive(Supplier<NetworkEvent.Context> context) {
+		context.get().enqueueWork(() -> {
+			ServerPlayerEntity player = context.get().getSender();
+			ItemStack stack = player.getHeldItem(Hand.MAIN_HAND);
+
+			if (!stack.isEmpty() && stack.getCapability(PsiAPI.SOCKETABLE_CAPABILITY).isPresent()) {
+				stack.getCapability(PsiAPI.SOCKETABLE_CAPABILITY).ifPresent(cap -> cap.setSelectedSlot(slot));
+			} else {
+				stack = player.getHeldItem(Hand.OFF_HAND);
+				if (!stack.isEmpty()) {
+					stack.getCapability(PsiAPI.SOCKETABLE_CAPABILITY).ifPresent(cap -> cap.setSelectedSlot(slot));
+				}
+			}
+			PlayerDataHandler.get(player).stopLoopcast();
+		});
+
+		return true;
 	}
 
 }

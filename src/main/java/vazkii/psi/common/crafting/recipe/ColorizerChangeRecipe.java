@@ -1,22 +1,23 @@
-/**
-* This class was created by <WireSegal>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [28/02/2016, 12:17:15 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.crafting.recipe;
 
 import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.IRecipeSerializer;
+import net.minecraft.item.crafting.SpecialRecipe;
+import net.minecraft.item.crafting.SpecialRecipeSerializer;
 import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.ForgeHooks;
-import vazkii.arl.recipe.ModRecipe;
+
 import vazkii.psi.api.cad.EnumCADComponent;
 import vazkii.psi.api.cad.ICAD;
 import vazkii.psi.api.cad.ICADColorizer;
@@ -24,29 +25,34 @@ import vazkii.psi.common.item.ItemCAD;
 
 import javax.annotation.Nonnull;
 
-public class ColorizerChangeRecipe extends ModRecipe {
+public class ColorizerChangeRecipe extends SpecialRecipe {
+	public static final SpecialRecipeSerializer<ColorizerChangeRecipe> SERIALIZER = new SpecialRecipeSerializer<>(ColorizerChangeRecipe::new);
 
-	public ColorizerChangeRecipe() {
-		super(new ResourceLocation("psi", "colorizer_change"));
+	public ColorizerChangeRecipe(ResourceLocation id) {
+		super(id);
 	}
 
 	@Override
-	public boolean matches(@Nonnull CraftingInventory var1, @Nonnull World var2) {
+	public boolean matches(@Nonnull CraftingInventory inv, @Nonnull World world) {
 		boolean foundColorizer = false;
 		boolean foundCAD = false;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
-			if(!stack.isEmpty()) {
-				if(stack.getItem() instanceof ICAD) {
-					if(foundCAD)
+		for (int i = 0; i < inv.getSizeInventory(); i++) {
+			ItemStack stack = inv.getStackInSlot(i);
+			if (!stack.isEmpty()) {
+				if (stack.getItem() instanceof ICAD) {
+					if (foundCAD) {
 						return false;
+					}
 					foundCAD = true;
-				} else if(stack.getItem() instanceof ICADColorizer) {
-					if(foundColorizer)
+				} else if (stack.getItem() instanceof ICADColorizer) {
+					if (foundColorizer) {
 						return false;
+					}
 					foundColorizer = true;
-				} else return false;
+				} else {
+					return false;
+				}
 			}
 		}
 
@@ -55,32 +61,29 @@ public class ColorizerChangeRecipe extends ModRecipe {
 
 	@Nonnull
 	@Override
-	public ItemStack getCraftingResult(@Nonnull CraftingInventory var1) {
+	public ItemStack getCraftingResult(@Nonnull CraftingInventory inv) {
 		ItemStack colorizer = ItemStack.EMPTY;
 		ItemStack cad = ItemStack.EMPTY;
 
-		for(int i = 0; i < var1.getSizeInventory(); i++) {
-			ItemStack stack = var1.getStackInSlot(i);
-			if(!stack.isEmpty()) {
-				if(stack.getItem() instanceof ICADColorizer)
+		for (int i = 0; i < inv.getSizeInventory(); i++) {
+			ItemStack stack = inv.getStackInSlot(i);
+			if (!stack.isEmpty()) {
+				if (stack.getItem() instanceof ICADColorizer) {
 					colorizer = stack;
-				else cad = stack;
+				} else {
+					cad = stack;
+				}
 			}
 		}
 
-		if(cad.isEmpty() || colorizer.isEmpty()) 
+		if (cad.isEmpty() || colorizer.isEmpty()) {
 			return ItemStack.EMPTY;
+		}
 
 		ItemStack copy = cad.copy();
 		ItemCAD.setComponent(copy, colorizer);
 
 		return copy;
-	}
-
-	@Nonnull
-	@Override
-	public ItemStack getRecipeOutput() {
-		return ItemStack.EMPTY;
 	}
 
 	@Nonnull
@@ -94,8 +97,9 @@ public class ColorizerChangeRecipe extends ModRecipe {
 			if (!stack.isEmpty() && stack.getItem() instanceof ICAD) {
 				cad = stack;
 			} else {
-				if (!stack.isEmpty() && stack.getItem() instanceof ICADColorizer)
+				if (!stack.isEmpty() && stack.getItem() instanceof ICADColorizer) {
 					dyeIndex = i;
+				}
 				ret.set(i, ForgeHooks.getContainerItem(stack));
 			}
 		}
@@ -107,13 +111,19 @@ public class ColorizerChangeRecipe extends ModRecipe {
 		return ret;
 	}
 
+	@Nonnull
 	@Override
-	public boolean isDynamic() {
-		return true;
+	public IRecipeSerializer<?> getSerializer() {
+		return SERIALIZER;
 	}
 
 	@Override
 	public boolean canFit(int width, int height) {
+		return true;
+	}
+
+	@Override
+	public boolean isDynamic() {
 		return true;
 	}
 

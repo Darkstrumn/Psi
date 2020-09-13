@@ -1,16 +1,15 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [29/01/2016, 17:31:17 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.trick.entity;
 
 import net.minecraft.entity.Entity;
+
 import vazkii.psi.api.internal.Vector3;
 import vazkii.psi.api.spell.EnumSpellStat;
 import vazkii.psi.api.spell.Spell;
@@ -27,9 +26,9 @@ import vazkii.psi.api.spell.wrapper.EntityListWrapper;
 
 public class PieceTrickMassExodus extends PieceTrick {
 
-	SpellParam target;
-	SpellParam position;
-	SpellParam speed;
+	SpellParam<EntityListWrapper> target;
+	SpellParam<Vector3> position;
+	SpellParam<Number> speed;
 
 	public PieceTrickMassExodus(Spell spell) {
 		super(spell);
@@ -46,8 +45,9 @@ public class PieceTrickMassExodus extends PieceTrick {
 	public void addToMetadata(SpellMetadata meta) throws SpellCompilationException {
 		super.addToMetadata(meta);
 		Double speedVal = this.<Double>getParamEvaluation(speed);
-		if(speedVal == null)
+		if (speedVal == null) {
 			speedVal = 1D;
+		}
 
 		meta.addStat(EnumSpellStat.POTENCY, (int) (Math.abs(speedVal) * 50));
 		meta.addStat(EnumSpellStat.COST, (int) (Math.abs(speedVal) * 70));
@@ -57,9 +57,9 @@ public class PieceTrickMassExodus extends PieceTrick {
 	public Object execute(SpellContext context) throws SpellRuntimeException {
 		EntityListWrapper targetVal = this.getParamValue(context, target);
 		Vector3 positionVal = this.getParamValue(context, position);
-		Double speedVal = this.<Double>getParamValue(context, speed);
+		double speedVal = this.getParamValue(context, speed).doubleValue();
 
-		for(Entity e : targetVal) {
+		for (Entity e : targetVal) {
 			Vector3 vec = positionVal.copy().sub(Vector3.fromEntity(e));
 			PieceTrickAddMotion.addMotion(context, e, vec, speedVal);
 		}

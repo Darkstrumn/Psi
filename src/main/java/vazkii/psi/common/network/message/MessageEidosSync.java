@@ -1,39 +1,40 @@
-/**
- * This class was created by <WireSegal>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
- * <p>
+ *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- * <p>
- * File Created @ [Feb 02, 2019, 10:20 AM (EST)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.network.message;
 
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
-import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.arl.network.NetworkMessage;
-import vazkii.arl.util.ClientTicker;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
+
 import vazkii.psi.common.Psi;
 import vazkii.psi.common.core.handler.PlayerDataHandler;
 
-public class MessageEidosSync extends NetworkMessage<MessageEidosSync> {
+import java.util.function.Supplier;
 
-	public int reversionTime;
+public class MessageEidosSync {
 
-	public MessageEidosSync() { }
+	private final int reversionTime;
 
 	public MessageEidosSync(int reversionTime) {
 		this.reversionTime = reversionTime;
 	}
 
-	@Override
-	@OnlyIn(Dist.CLIENT)
-	public IMessage handleMessage(MessageContext context) {
-		ClientTicker.addAction(() -> {
+	public MessageEidosSync(PacketBuffer buf) {
+		this.reversionTime = buf.readInt();
+	}
+
+	public void encode(PacketBuffer buf) {
+		buf.writeInt(reversionTime);
+	}
+
+	public boolean receive(Supplier<NetworkEvent.Context> context) {
+		context.get().enqueueWork(() -> {
 			PlayerEntity player = Psi.proxy.getClientPlayer();
 			if (player != null) {
 				PlayerDataHandler.PlayerData data = PlayerDataHandler.get(player);
@@ -42,7 +43,7 @@ public class MessageEidosSync extends NetworkMessage<MessageEidosSync> {
 			}
 		});
 
-		return null;
+		return true;
 	}
 
 }

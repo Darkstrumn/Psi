@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [06/02/2016, 18:43:53 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.operator.number;
 
@@ -19,7 +17,7 @@ import vazkii.psi.api.spell.piece.PieceOperator;
 
 public class PieceOperatorRandom extends PieceOperator {
 
-	SpellParam num;
+	SpellParam<Number> num;
 
 	public PieceOperatorRandom(Spell spell) {
 		super(spell);
@@ -32,16 +30,18 @@ public class PieceOperatorRandom extends PieceOperator {
 
 	@Override
 	public Object execute(SpellContext context) throws SpellRuntimeException {
-		Double d = this.<Double>getParamValue(context, num);
+		int d = this.getParamValue(context, num).intValue();
 
 		boolean neg = d < 0;
-		int i = Math.abs(d.intValue());
-		if(i == 0)
+		int i = Math.abs(d);
+		if (i == 0) {
 			throw new SpellRuntimeException(SpellRuntimeException.DIVIDE_BY_ZERO);
+		}
 
 		int v = context.caster.getEntityWorld().rand.nextInt(i);
-		if(neg)
+		if (neg) {
 			v = -v;
+		}
 
 		return (double) v;
 	}

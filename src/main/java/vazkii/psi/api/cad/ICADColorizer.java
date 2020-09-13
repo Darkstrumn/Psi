@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [13/01/2016, 12:30:38 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.cad;
 
@@ -33,4 +31,16 @@ public interface ICADColorizer extends ICADComponent {
 	default EnumCADComponent getComponentType(ItemStack stack) {
 		return EnumCADComponent.DYE;
 	}
+
+	/**
+	 * Gets the contributor name in the stack
+	 * Used for contributor rewards
+	 */
+	String getContributorName(ItemStack stack);
+
+	/**
+	 * Sets the contributor name in the stack
+	 * Used for contributor rewards
+	 */
+	void setContributorName(ItemStack stack, String name);
 }

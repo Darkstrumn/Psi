@@ -1,21 +1,20 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [16/01/2016, 15:17:40 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.spell;
 
+import net.minecraft.util.Util;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
+
 import vazkii.psi.api.PsiAPI;
 import vazkii.psi.api.internal.IPlayerData;
-import vazkii.psi.api.spell.SpellPiece.Null;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +48,7 @@ public class CompiledSpell {
 	 */
 	public boolean execute(SpellContext context) throws SpellRuntimeException {
 		IPlayerData data = PsiAPI.internalHandler.getDataForPlayer(context.caster);
-		while(!context.actions.isEmpty()) {
+		while (!context.actions.isEmpty()) {
 			Action a = context.actions.pop();
 			currentAction = a;
 
@@ -59,13 +58,15 @@ public class CompiledSpell {
 
 			currentAction = null;
 
-			if(context.stopped)
+			if (context.stopped) {
 				return false;
+			}
 
-			if(context.delay > 0)
+			if (context.delay > 0) {
 				return true;
+			}
 		}
-		
+
 		return false;
 	}
 
@@ -74,29 +75,33 @@ public class CompiledSpell {
 	 */
 	@SuppressWarnings("unchecked")
 	public void safeExecute(SpellContext context) {
-		if (context.caster.getEntityWorld().isRemote)
+		if (context.caster.getEntityWorld().isRemote) {
 			return;
+		}
 
 		try {
-			if(context.actions == null)
+			if (context.actions == null) {
 				context.actions = (Stack<Action>) actions.clone();
+			}
 
-			if(context.cspell.execute(context))
+			if (context.cspell.execute(context)) {
 				PsiAPI.internalHandler.delayContext(context);
-		} catch(SpellRuntimeException e) {
-			if(!context.shouldSuppressErrors()) {
-				context.caster.sendMessage(new TranslationTextComponent(e.getMessage()).setStyle(new Style().setColor(TextFormatting.RED)));
-				
+			}
+		} catch (SpellRuntimeException e) {
+			if (!context.shouldSuppressErrors()) {
+				context.caster.sendMessage(new TranslationTextComponent(e.getMessage()).setStyle(Style.EMPTY.withColor(TextFormatting.RED)), Util.NIL_UUID);
+
 				int x = context.cspell.currentAction.piece.x + 1;
 				int y = context.cspell.currentAction.piece.y + 1;
-				context.caster.sendMessage(new TranslationTextComponent("psi.spellerror.position", x, y).setStyle(new Style().setColor(TextFormatting.RED)));
+				context.caster.sendMessage(new TranslationTextComponent("psi.spellerror.position", x, y).setStyle(Style.EMPTY.withColor(TextFormatting.RED)), Util.NIL_UUID);
 			}
 		}
 	}
 
 	public boolean hasEvaluated(int x, int y) {
-		if(!SpellGrid.exists(x, y))
+		if (!SpellGrid.exists(x, y)) {
 			return false;
+		}
 
 		return spotsEvaluated[x][y];
 	}
@@ -115,12 +120,14 @@ public class CompiledSpell {
 				Object o = piece.execute(context);
 
 				Class<?> eval = piece.getEvaluationType();
-				if (eval != null && eval != Null.class)
+				if (eval != null && eval != Void.class) {
 					context.evaluatedObjects[piece.x][piece.y] = o;
+				}
 			} catch (SpellRuntimeException exception) {
 				if (errorHandlers.containsKey(piece)) {
-					if (!errorHandlers.get(piece).suppress(piece, context, exception))
+					if (!errorHandlers.get(piece).suppress(piece, context, exception)) {
 						throw exception;
+					}
 					return;
 				}
 				throw exception;
@@ -143,9 +150,10 @@ public class CompiledSpell {
 			boolean handled = handler.catchException(piece, context, exception);
 			if (handled) {
 				Class<?> eval = piece.getEvaluationType();
-				if (eval != null && eval != Null.class)
+				if (eval != null && eval != Void.class) {
 					context.evaluatedObjects[piece.x][piece.y] =
 							handler.supplyReplacementValue(piece, context, exception);
+				}
 			}
 
 			return handled;

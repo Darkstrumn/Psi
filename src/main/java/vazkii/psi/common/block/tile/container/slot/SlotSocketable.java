@@ -1,33 +1,34 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [10/01/2016, 17:24:18 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.block.tile.container.slot;
 
-import net.minecraft.inventory.IInventory;
-import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
-import vazkii.psi.api.cad.ISocketableCapability;
+import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.items.SlotItemHandler;
+
+import vazkii.psi.api.cad.ISocketable;
 import vazkii.psi.api.inventory.InventorySocketable;
 
-public class SlotSocketable extends Slot {
+import javax.annotation.Nonnull;
+
+public class SlotSocketable extends SlotItemHandler {
 
 	private final InventorySocketable bullets;
 
-	public SlotSocketable(IInventory inventoryIn, InventorySocketable bullets, int index, int xPosition, int yPosition) {
+	public SlotSocketable(IItemHandlerModifiable inventoryIn, InventorySocketable bullets, int index, int xPosition, int yPosition) {
 		super(inventoryIn, index, xPosition, yPosition);
 		this.bullets = bullets;
 	}
 
 	@Override
-	public boolean isItemValid(ItemStack stack) {
-		return ISocketableCapability.isSocketable(stack);
+	public boolean isItemValid(@Nonnull ItemStack stack) {
+		return ISocketable.isSocketable(stack);
 	}
 
 	@Override

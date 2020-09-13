@@ -1,22 +1,19 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [18/01/2016, 22:02:05 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.spell.operator.vector;
 
-
-
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.util.math.BlockRayTraceResult;
+import net.minecraft.util.math.RayTraceContext;
 import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.util.math.vector.Vector3d;
+
 import vazkii.psi.api.internal.Vector3;
 import vazkii.psi.api.spell.Spell;
 import vazkii.psi.api.spell.SpellContext;
@@ -28,9 +25,9 @@ import vazkii.psi.api.spell.piece.PieceOperator;
 
 public class PieceOperatorVectorRaycast extends PieceOperator {
 
-	SpellParam origin;
-	SpellParam ray;
-	SpellParam max;
+	SpellParam<Vector3> origin;
+	SpellParam<Vector3> ray;
+	SpellParam<Number> max;
 
 	public PieceOperatorVectorRaycast(Spell spell) {
 		super(spell);
@@ -48,35 +45,37 @@ public class PieceOperatorVectorRaycast extends PieceOperator {
 		Vector3 originVal = this.getParamValue(context, origin);
 		Vector3 rayVal = this.getParamValue(context, ray);
 
-		if(originVal == null || rayVal == null)
+		if (originVal == null || rayVal == null) {
 			throw new SpellRuntimeException(SpellRuntimeException.NULL_VECTOR);
+		}
 
 		double maxLen = SpellContext.MAX_DISTANCE;
-		Double numberVal = this.<Double>getParamValue(context, max);
-		if(numberVal != null)
-			maxLen = numberVal;
+		Number numberVal = this.getParamValue(context, max);
+		if (numberVal != null) {
+			maxLen = numberVal.doubleValue();
+		}
 		maxLen = Math.min(SpellContext.MAX_DISTANCE, maxLen);
 
-		RayTraceResult pos = raycast(context.caster.getEntityWorld(), originVal, rayVal, maxLen);
-		if(pos == null)
+		BlockRayTraceResult pos = raycast(context.caster, originVal, rayVal, maxLen);
+		if (pos.getType() == RayTraceResult.Type.MISS) {
 			throw new SpellRuntimeException(SpellRuntimeException.NULL_VECTOR);
+		}
 
-		return new Vector3(pos.getBlockPos().getX(), pos.getBlockPos().getY(), pos.getBlockPos().getZ());
+		return Vector3.fromBlockPos(pos.getPos());
 	}
 
-	public static RayTraceResult raycast(Entity e, double len) {
+	public static BlockRayTraceResult raycast(Entity e, double len) {
 		Vector3 vec = Vector3.fromEntity(e);
-		if(e instanceof PlayerEntity)
-			vec.add(0, e.getEyeHeight(), 0);
-		
-		Vec3d look = e.getLookVec();
+		vec.add(0, e.getEyeHeight(), 0);
 
-		return raycast(e.getEntityWorld(), vec, new Vector3(look), len);
+		Vector3d look = e.getLookVec();
+
+		return raycast(e, vec, new Vector3(look), len);
 	}
 
-	public static RayTraceResult raycast(World world, Vector3 origin, Vector3 ray, double len) {
+	public static BlockRayTraceResult raycast(Entity entity, Vector3 origin, Vector3 ray, double len) {
 		Vector3 end = origin.copy().add(ray.copy().normalize().multiply(len));
-		return world.rayTraceBlocks(origin.toVec3D(), end.toVec3D());
+		return entity.world.rayTraceBlocks(new RayTraceContext(origin.toVec3D(), end.toVec3D(), RayTraceContext.BlockMode.OUTLINE, RayTraceContext.FluidMode.NONE, entity));
 	}
 
 	@Override

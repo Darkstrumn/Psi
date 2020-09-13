@@ -1,22 +1,23 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [16/01/2016, 15:19:38 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.spell;
 
-import vazkii.psi.api.internal.TooltipHelper;
+import com.google.common.base.CaseFormat;
+
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /**
  * Base abstract class for a spell parameter. See implementations
  * in vazkii.psi.api.spell.param.
  */
-public abstract class SpellParam {
+public abstract class SpellParam<T> {
 
 	// Colors
 	// These are modifiable for a reason, but you still shouldn't do it
@@ -54,6 +55,27 @@ public abstract class SpellParam {
 	public static final String GENERIC_NAME_TIME = PSI_PREFIX + "time";
 	public static final String GENERIC_NAME_BASE = PSI_PREFIX + "base";
 	public static final String GENERIC_NAME_RAY = PSI_PREFIX + "ray";
+	public static final String GENERIC_NAME_VECTOR = PSI_PREFIX + "vector";
+	public static final String GENERIC_NAME_AXIS = PSI_PREFIX + "axis";
+	public static final String GENERIC_NAME_ANGLE = PSI_PREFIX + "angle";
+	public static final String GENERIC_NAME_PITCH = "psi.spellparam.pitch";
+	public static final String GENERIC_NAME_INSTRUMENT = "psi.spellparam.instrument";
+	public static final String GENERIC_NAME_VOLUME = "psi.spellparam.volume";
+	public static final String GENERIC_NAME_LIST1 = PSI_PREFIX + "list1";
+	public static final String GENERIC_NAME_LIST2 = PSI_PREFIX + "list2";
+	public static final String GENERIC_NAME_LIST = PSI_PREFIX + "list";
+	public static final String GENERIC_NAME_DIRECTION = PSI_PREFIX + "direction";
+	public static final String CONNECTOR_NAME_FROM1 = PSI_PREFIX + "from1";
+	public static final String CONNECTOR_NAME_FROM2 = PSI_PREFIX + "from2";
+	public static final String CONNECTOR_NAME_TO1 = PSI_PREFIX + "to1";
+	public static final String CONNECTOR_NAME_TO2 = PSI_PREFIX + "to2";
+	public static final String GENERIC_NAME_ROOT = PSI_PREFIX + "root";
+	public static final String GENERIC_NAME_TOGGLE = PSI_PREFIX + "toggle";
+	public static final String GENERIC_NAME_MASK = PSI_PREFIX + "mask";
+	public static final String GENERIC_NAME_CHANNEL = PSI_PREFIX + "channel";
+	public static final String GENERIC_NAME_SLOT = PSI_PREFIX + "slot";
+	public static final String GENERIC_NAME_RAY_END = PSI_PREFIX + "ray_end";
+	public static final String GENERIC_NAME_RAY_START = PSI_PREFIX + "ray_start";
 
 	public final String name;
 	public final int color;
@@ -73,10 +95,11 @@ public abstract class SpellParam {
 	 * implemented fully. For better control, use {@link #canAccept(SpellPiece)} and
 	 * override {@link #getRequiredTypeString()} for display.
 	 */
-	protected abstract Class<?> getRequiredType();
+	protected abstract Class<T> getRequiredType();
 
 	/**
-	 * Gets if this parameter requires a constant ({@link EnumPieceType#CONSTANT}). Similarly to {@link #getRequiredType()} this
+	 * Gets if this parameter requires a constant ({@link EnumPieceType#CONSTANT}). Similarly to
+	 * {@link #getRequiredType()} this
 	 * is for internal use only.
 	 */
 	protected boolean requiresConstant() {
@@ -86,12 +109,13 @@ public abstract class SpellParam {
 	/**
 	 * Gets the string for display for the required type.
 	 */
-	public String getRequiredTypeString() {
-		Class<?> evalType = getRequiredType();
-		String evalStr = evalType.getSimpleName();
-		String s = TooltipHelper.local("psi.datatype." + evalStr);
-		if(requiresConstant())
-			s += " " + TooltipHelper.local("psimisc.constant");
+	public ITextComponent getRequiredTypeString() {
+		Class<T> evalType = getRequiredType();
+		String evalStr = evalType == null ? "null" : CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, evalType.getSimpleName());
+		TranslationTextComponent s = new TranslationTextComponent("psi.datatype." + evalStr);
+		if (requiresConstant()) {
+			s.append(" ").append(new TranslationTextComponent("psimisc.constant"));
+		}
 
 		return s;
 	}
@@ -155,16 +179,16 @@ public abstract class SpellParam {
 
 		private Side mapSides(Side whenUp, Side whenDown, Side whenL, Side whenR) {
 			switch (this) {
-				case TOP:
-					return whenUp;
-				case BOTTOM:
-					return whenDown;
-				case LEFT:
-					return whenL;
-				case RIGHT:
-					return whenR;
-				default:
-					return OFF;
+			case TOP:
+				return whenUp;
+			case BOTTOM:
+				return whenDown;
+			case LEFT:
+				return whenL;
+			case RIGHT:
+				return whenR;
+			default:
+				return OFF;
 			}
 		}
 	}
@@ -172,6 +196,7 @@ public abstract class SpellParam {
 	/**
 	 * Empty helper class for use with required types when any type is accepted.
 	 */
-	public static class Any { }
+	public static class Any {
+	}
 
 }

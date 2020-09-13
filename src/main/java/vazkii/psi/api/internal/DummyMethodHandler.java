@@ -1,21 +1,29 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [13/01/2016, 17:01:34 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.internal;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
-import vazkii.psi.api.spell.*;
+
+import vazkii.psi.api.spell.CompiledSpell;
+import vazkii.psi.api.spell.ISpellCache;
+import vazkii.psi.api.spell.ISpellCompiler;
+import vazkii.psi.api.spell.Spell;
+import vazkii.psi.api.spell.SpellContext;
+import vazkii.psi.api.spell.SpellPiece;
 
 import java.util.List;
 
@@ -33,6 +41,12 @@ public final class DummyMethodHandler implements IInternalMethodHandler {
 	@Override
 	public ResourceLocation getProgrammerTexture() {
 		return new ResourceLocation("");
+	}
+
+	@Override
+	@OnlyIn(Dist.CLIENT)
+	public RenderType getProgrammerLayer() {
+		return null;
 	}
 
 	@Override
@@ -57,13 +71,8 @@ public final class DummyMethodHandler implements IInternalMethodHandler {
 
 	@Override
 	@OnlyIn(Dist.CLIENT)
-	public void renderTooltip(int x, int y, List<String> tooltipData, int color, int color2) {
+	public void renderTooltip(MatrixStack ms, int x, int y, List<ITextComponent> tooltipData, int color, int color2, int width, int height) {
 		// NO-OP
-	}
-
-	@Override
-	public String localize(String key, Object... format) {
-		return key;
 	}
 
 	@Override

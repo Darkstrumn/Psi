@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [10/01/2016, 17:46:41 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.block.tile.container.slot;
 
@@ -15,11 +13,13 @@ import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.container.Slot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.SoundCategory;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.common.MinecraftForge;
+
 import vazkii.psi.api.cad.CADTakeEvent;
 import vazkii.psi.common.block.tile.TileCADAssembler;
 import vazkii.psi.common.core.handler.PsiSoundHandler;
@@ -34,7 +34,7 @@ public class SlotCADOutput extends Slot {
 		super(outputInventory, 0, xPosition, yPosition);
 		this.assembler = assembler;
 	}
-	
+
 	@Nonnull
 	@Override
 	public ItemStack onTake(PlayerEntity playerIn, @Nonnull ItemStack stack) {
@@ -51,8 +51,9 @@ public class SlotCADOutput extends Slot {
 			BlockPos assemblerPos = this.assembler.getPos();
 			String cancelMessage = event.getCancellationMessage();
 			if (!playerIn.world.isRemote) {
-				if (cancelMessage != null && !cancelMessage.isEmpty())
-					playerIn.sendMessage(new TranslationTextComponent(cancelMessage).setStyle(new Style().setColor(TextFormatting.RED)));
+				if (cancelMessage != null && !cancelMessage.isEmpty()) {
+					playerIn.sendMessage(new TranslationTextComponent(cancelMessage).setStyle(Style.EMPTY.withColor(TextFormatting.RED)), Util.NIL_UUID);
+				}
 				playerIn.world.playSound(null, assemblerPos.getX(), assemblerPos.getY(), assemblerPos.getZ(), PsiSoundHandler.compileError, SoundCategory.BLOCKS, sound, 1F);
 			}
 			return false;

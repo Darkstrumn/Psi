@@ -1,92 +1,94 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [10/01/2016, 16:55:16 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.client.gui;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+
 import net.minecraft.client.gui.screen.inventory.ContainerScreen;
-import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextFormatting;
+
 import vazkii.psi.api.cad.EnumCADStat;
 import vazkii.psi.api.cad.ICAD;
-import vazkii.psi.api.internal.TooltipHelper;
 import vazkii.psi.common.Psi;
 import vazkii.psi.common.block.base.ModBlocks;
 import vazkii.psi.common.block.tile.TileCADAssembler;
 import vazkii.psi.common.block.tile.container.ContainerCADAssembler;
 import vazkii.psi.common.lib.LibResources;
 
-public class GuiCADAssembler extends ContainerScreen {
+public class GuiCADAssembler extends ContainerScreen<ContainerCADAssembler> {
 
 	private static final ResourceLocation texture = new ResourceLocation(LibResources.GUI_CAD_ASSEMBLER);
 	private final PlayerEntity player;
 	private final TileCADAssembler assembler;
 
-	public GuiCADAssembler(PlayerEntity player, TileCADAssembler assembler) {
-		super(new ContainerCADAssembler(player, assembler));
-		this.player = player;
-		this.assembler = assembler;
-	}
-
-	@Override
-	public void initGui() {
+	public GuiCADAssembler(ContainerCADAssembler containerCADAssembler, PlayerInventory inventory, ITextComponent component) {
+		super(containerCADAssembler, inventory, component);
+		this.player = inventory.player;
+		this.assembler = containerCADAssembler.assembler;
 		xSize = 256;
 		ySize = 225;
-		super.initGui();
 	}
 
 	@Override
-	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-		this.drawDefaultBackground();
-		super.drawScreen(mouseX, mouseY, partialTicks);
-		this.renderHoveredToolTip(mouseX, mouseY);
+	public void render(MatrixStack ms, int x, int y, float pTicks) {
+		this.renderBackground(ms);
+		super.render(ms, x, y, pTicks);
+		//this.renderHoveredToolTip(ms, x, y);
+		this.renderTextHoverEffect(ms, Style.EMPTY, x, y);
 	}
-	
+
 	@Override
-	protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
+	protected void drawForeground(MatrixStack ms, int mouseX, int mouseY) {
 		int color = 4210752;
 
-		String name = new ItemStack(ModBlocks.cadAssembler).getDisplayName();
-		fontRenderer.drawString(name, xSize / 2 - fontRenderer.getStringWidth(name) / 2, 10, color);
+		String name = new ItemStack(ModBlocks.cadAssembler).getDisplayName().getString();
+		textRenderer.draw(ms, name, xSize / 2 - textRenderer.getStringWidth(name) / 2, 10, color);
 
 		ItemStack cad = assembler.getCachedCAD(player);
-		if(!cad.isEmpty()) {
+		if (!cad.isEmpty()) {
 			color = 0xFFFFFF;
 
 			int i = 0;
 			ICAD cadItem = (ICAD) cad.getItem();
-			String stats = TooltipHelper.local("psimisc.stats");
+			String stats = I18n.format("psimisc.stats");
 			String s = TextFormatting.BOLD + stats;
-			fontRenderer.drawStringWithShadow(s, 213 - fontRenderer.getStringWidth(s) / 2f, 34, color);
+			textRenderer.drawWithShadow(ms, s, 213 - textRenderer.getStringWidth(s) / 2f, 34, color);
 
-			for(EnumCADStat stat : EnumCADStat.class.getEnumConstants()) {
-				s = (Psi.magical ? TextFormatting.LIGHT_PURPLE : TextFormatting.AQUA) + TooltipHelper.local(stat.getName()) + TextFormatting.RESET + ": " + cadItem.getStatValue(cad, stat);
-				fontRenderer.drawStringWithShadow(s, 179, 50 + i * 10, color);
+			for (EnumCADStat stat : EnumCADStat.class.getEnumConstants()) {
+				s = (Psi.magical ? TextFormatting.LIGHT_PURPLE : TextFormatting.AQUA) + I18n.format(stat.getName()) + TextFormatting.RESET + ": " + cadItem.getStatValue(cad, stat);
+				textRenderer.drawWithShadow(ms, s, 179, 50 + i * 10, color);
 				i++;
 			}
 		}
 	}
 
 	@Override
-	protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-		GlStateManager.color(1F, 1F, 1F);
-		mc.getTextureManager().bindTexture(texture);
+	protected void drawBackground(MatrixStack ms, float partialTicks, int mouseX, int mouseY) {
+		RenderSystem.color3f(1F, 1F, 1F);
+		getMinecraft().getTextureManager().bindTexture(texture);
 		int x = (width - xSize) / 2;
 		int y = (height - ySize) / 2;
-		drawTexturedModalRect(x, y, 0, 0, xSize, ySize);
+		drawTexture(ms, x, y, 0, 0, xSize, ySize);
 
-		for(int i = 0; i < 12; i++)
-			if(!assembler.isBulletSlotEnabled(i))
-				drawTexturedModalRect(x + 17 + i % 3 * 18, y + 57 + i / 3 * 18, 16, ySize, 16, 16);
+		for (int i = 0; i < 12; i++) {
+			if (!assembler.isBulletSlotEnabled(i)) {
+				drawTexture(ms, x + 17 + i % 3 * 18, y + 57 + i / 3 * 18, 16, ySize, 16, 16);
+			}
+		}
 	}
 
 }

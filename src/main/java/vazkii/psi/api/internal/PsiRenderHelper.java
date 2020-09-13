@@ -1,16 +1,31 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
- * 
+ *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- * 
- * File Created @ [28/08/2016, 01:15:29 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.internal;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+import com.mojang.blaze3d.systems.RenderSystem;
+
 public class PsiRenderHelper {
+
+	/**
+	 * Shim for rendering functions that don't take a MatrixStack when they should.
+	 * Temporary, remove when Mojang adds MatrixStacks to those methods.
+	 */
+	public static void transferMsToGl(MatrixStack ms, Runnable function) {
+		try {
+			RenderSystem.pushMatrix();
+			RenderSystem.multMatrix(ms.peek().getModel());
+			function.run();
+		} finally {
+			RenderSystem.popMatrix();
+		}
+	}
 
 	public static int r(int color) {
 		return (color >> 16) & 0xFF;

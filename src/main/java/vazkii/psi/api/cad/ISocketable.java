@@ -1,92 +1,82 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [13/01/2016, 18:38:54 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.cad;
 
 import net.minecraft.item.ItemStack;
-import vazkii.psi.api.internal.IPlayerData;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
+
+import vazkii.psi.api.PsiAPI;
 import vazkii.psi.api.spell.ISpellAcceptor;
 
 /**
- * This interface defines an item that can have Spell Bullets
- * put into it.
- *
- * As of version 73, this interface should not be used directly,
- * instead interacting with the item via its {@link ISocketableCapability}.
+ * This capability defines items that can have Spell Bullets inserted into them.
  */
-public interface ISocketable extends IShowPsiBar {
+public interface ISocketable {
 
 	int MAX_SLOTS = 12;
 
-	static String getSocketedItemName(ItemStack stack, String fallback) {
-		if(stack.isEmpty() || !ISocketableCapability.isSocketable(stack))
-			return fallback;
+	static ITextComponent getSocketedItemName(ItemStack stack, String fallbackKey) {
+		if (stack.isEmpty() || !isSocketable(stack)) {
+			return new TranslationTextComponent(fallbackKey);
+		}
 
-		ISocketableCapability socketable = ISocketableCapability.socketable(stack);
-		ItemStack item = socketable.getBulletInSocket(socketable.getSelectedSlot());
-		if(item.isEmpty())
-			return fallback;
+		ISocketable socketable = socketable(stack);
+		ItemStack item = socketable.getSelectedBullet();
+		if (item.isEmpty()) {
+			return new TranslationTextComponent(fallbackKey);
+		}
 
-        return item.getDisplayName().getString();
+		return item.getDisplayName();
 	}
 
-	/**
-	 * Gets if the passed in slot is available for inserting bullets given the ItemStack passed in.
-	 */
-	boolean isSocketSlotAvailable(ItemStack stack, int slot);
-
-	/**
-	 * Gets whether the passed in slot should be shown in the radial menu.
-	 */
-	default boolean showSlotInRadialMenu(ItemStack stack, int slot) {
-		return isSocketSlotAvailable(stack, slot);
+	static boolean isSocketable(ItemStack stack) {
+		return !stack.isEmpty() && stack.getCapability(PsiAPI.SOCKETABLE_CAPABILITY).isPresent();
 	}
 
-	/**
-	 * Gets the bullet in the slot passed in. Can be null.
-	 */
-	ItemStack getBulletInSocket(ItemStack stack, int slot);
+	static ISocketable socketable(ItemStack stack) {
+		return stack.getCapability(PsiAPI.SOCKETABLE_CAPABILITY).orElseThrow(NullPointerException::new);
+	}
 
-	/**
-	 * Sets the bullet in the slot passed in.
-	 */
-	void setBulletInSocket(ItemStack stack, int slot, ItemStack bullet);
+	boolean isSocketSlotAvailable(int slot);
 
-	/**
-	 * Gets the slot that is currently selected.
-	 */
-	int getSelectedSlot(ItemStack stack);
+	default boolean showSlotInRadialMenu(int slot) {
+		return isSocketSlotAvailable(slot);
+	}
 
-	/**
-	 * Sets ths currently selected slot.
-	 */
-	void setSelectedSlot(ItemStack stack, int slot);
+	ItemStack getBulletInSocket(int slot);
 
-	default boolean isItemValid(ItemStack stack, int slot, ItemStack bullet) {
-		if (!isSocketSlotAvailable(stack, slot))
+	void setBulletInSocket(int slot, ItemStack bullet);
+
+	int getSelectedSlot();
+
+	void setSelectedSlot(int slot);
+
+	default ItemStack getSelectedBullet() {
+		return getBulletInSocket(getSelectedSlot());
+	}
+
+	default boolean isItemValid(int slot, ItemStack bullet) {
+		if (!isSocketSlotAvailable(slot)) {
 			return false;
+		}
 
-		if (bullet.isEmpty() || !ISpellAcceptor.hasSpell(bullet))
+		if (bullet.isEmpty() || !ISpellAcceptor.hasSpell(bullet)) {
 			return false;
+		}
 
 		ISpellAcceptor container = ISpellAcceptor.acceptor(bullet);
 
-		return stack.getItem() instanceof ICAD || !container.isCADOnlyContainer();
+		return this instanceof ICADData || !container.isCADOnlyContainer();
 	}
 
-	default boolean canLoopcast(ItemStack stack) {
-		return stack.getItem() instanceof ICAD;
-	}
-
-	@Override
-	default boolean shouldShow(ItemStack stack, IPlayerData data) {
-		return true;
+	default boolean canLoopcast() {
+		return this instanceof ICADData;
 	}
 }

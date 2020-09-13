@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [17/01/2016, 15:04:04 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.spell.piece;
 
@@ -38,7 +36,7 @@ public abstract class PieceTrick extends SpellPiece {
 
 	@Override
 	public Class<?> getEvaluationType() {
-		return Null.class;
+		return Void.class;
 	}
 
 	@Override
@@ -50,15 +48,16 @@ public abstract class PieceTrick extends SpellPiece {
 	public Object execute(SpellContext context) throws SpellRuntimeException {
 		return null;
 	}
-	
+
 	public double multiplySafe(double v1, double... arr) throws SpellCompilationException {
 		double a = v1;
 		for (double b : arr) {
 			a = a * b;
-			if ((int) a < 0 || (int) a == Integer.MAX_VALUE)
+			if ((int) a < 0 || (int) a == Integer.MAX_VALUE) {
 				throw new SpellCompilationException(SpellCompilationException.STAT_OVERFLOW);
+			}
 		}
-		
+
 		return a;
 	}
 

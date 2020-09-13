@@ -1,54 +1,70 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [16/01/2016, 17:35:40 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.client.gui.button;
 
+import com.mojang.blaze3d.matrix.MatrixStack;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.widget.button.Button;
-import com.mojang.blaze3d.platform.GlStateManager;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.util.text.StringTextComponent;
+
 import vazkii.psi.api.spell.SpellPiece;
 import vazkii.psi.client.gui.GuiProgrammer;
 
-import javax.annotation.Nonnull;
-
 public class GuiButtonSpellPiece extends Button {
-
-	public final SpellPiece piece;
+	public SpellPiece piece;
 	final GuiProgrammer gui;
 
 	public GuiButtonSpellPiece(GuiProgrammer gui, SpellPiece piece, int x, int y) {
-		super(0, x, y, 16, 16, "");
+		super(x, y, 16, 16, StringTextComponent.EMPTY, button -> {});
+		this.gui = gui;
+		this.piece = piece;
+	}
+
+	public GuiButtonSpellPiece(GuiProgrammer gui, SpellPiece piece, int x, int y, Button.IPressable pressable) {
+		super(x, y, 16, 16, StringTextComponent.EMPTY, pressable);
 		this.gui = gui;
 		this.piece = piece;
 	}
 
 	@Override
-	public void drawButton(@Nonnull Minecraft minecraft, int mouseX, int mouseY, float partialTicks) {
-		if(enabled && visible) {
-			hovered = mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + height;
-			int i = getHoverState(hovered);
+	public void renderButton(MatrixStack ms, int mouseX, int mouseY, float pTicks) {
+		if (active && visible) {
+			boolean hover = mouseX >= x && mouseY >= y && mouseX < x + width && mouseY < y + height;
 
-			GlStateManager.pushMatrix();
-			GlStateManager.color(1F, 1F, 1F);
-			GlStateManager.translate(x, y, 0);
-			piece.draw();
-			GlStateManager.popMatrix();
+			IRenderTypeBuffer.Impl buffers = IRenderTypeBuffer.immediate(Tessellator.getInstance().getBuffer());
+			ms.push();
+			ms.translate(x, y, 0);
+			piece.draw(ms, buffers, 0xF000F0);
+			buffers.draw();
 
-			minecraft.getTextureManager().bindTexture(GuiProgrammer.texture);
-
-			if (i == 2)
-				drawTexturedModalRect(x, y, 16, gui.ySize, 16, 16);
-
-			if(i == 2)
+			Minecraft.getInstance().getTextureManager().bindTexture(GuiProgrammer.texture);
+			if (hover) {
 				piece.getTooltip(gui.tooltip);
+				drawTexture(ms, x, y, 16, gui.ySize, 16, 16);
+			}
+			ms.pop();
+
 		}
 	}
 
+	public SpellPiece getPiece() {
+		return piece;
+	}
+
+	public String getPieceSortingName() {
+		return piece.getSortingName();
+	}
+
+	public void setPiece(SpellPiece piece) {
+		this.piece = piece;
+	}
 }

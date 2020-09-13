@@ -1,12 +1,10 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [17/01/2016, 22:18:42 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.api.spell;
 
@@ -17,6 +15,7 @@ import org.apache.commons.lang3.tuple.Pair;
  * and will show up as an error in it, as well as its {@link #location} as a "warning"
  * display next to the piece it indicates.
  */
+@SuppressWarnings("serial")
 public class SpellCompilationException extends Exception {
 
 	public static final String NO_SPELL = "psi.spellerror.nospell";
@@ -31,6 +30,9 @@ public class SpellCompilationException extends Exception {
 	public static final String NON_INTEGER = "psi.spellerror.noninteger";
 	public static final String NON_POSITIVE_INTEGER = "psi.spellerror.nonpositiveinteger";
 	public static final String STAT_OVERFLOW = "psi.spellerror.statoverflow";
+	public static final String PITCH = "psi.spellerror.pitch";
+	public static final String VOLUME = "psi.spellerror.volume";
+	public static final String INSTRUMENTS = "psi.spellerror.instruments";
 
 	public final Pair<Integer, Integer> location;
 

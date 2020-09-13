@@ -1,3 +1,11 @@
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
+ * https://github.com/Vazkii/Psi
+ *
+ * Psi is Open Source and distributed under the
+ * Psi License: https://psi.vazkii.net/license.php
+ */
 package vazkii.psi.api.cad;
 
 import net.minecraft.entity.player.PlayerEntity;
@@ -6,7 +14,6 @@ import net.minecraftforge.eventbus.api.Cancelable;
 import net.minecraftforge.eventbus.api.Event;
 
 import javax.annotation.Nullable;
-
 
 /**
  * Posted when a CAD is being taken from the assembler.
@@ -21,7 +28,7 @@ public class CADTakeEvent extends Event {
 	private final PlayerEntity player;
 
 	@Nullable
-	private String cancellationMessage = "psimisc.cancelledCADTake";
+	private String cancellationMessage = "psimisc.cancelled_cad_take";
 
 	private float sound = 0.5f;
 
@@ -59,6 +66,5 @@ public class CADTakeEvent extends Event {
 	public PlayerEntity getPlayer() {
 		return player;
 	}
-
 
 }

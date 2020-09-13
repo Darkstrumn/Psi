@@ -1,45 +1,60 @@
-/**
- * This class was created by <Vazkii>. It's distributed as
- * part of the Psi Mod. Get the Source Code in github:
+/*
+ * This class is distributed as part of the Psi Mod.
+ * Get the Source Code in github:
  * https://github.com/Vazkii/Psi
  *
  * Psi is Open Source and distributed under the
- * Psi License: http://psi.vazkii.us/license.php
- *
- * File Created @ [19/02/2016, 18:32:25 (GMT)]
+ * Psi License: https://psi.vazkii.net/license.php
  */
 package vazkii.psi.common.entity;
 
-import java.util.List;
-
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.projectile.ThrowableEntity;
+import net.minecraft.util.SoundEvents;
 import net.minecraft.world.World;
+import net.minecraftforge.registries.ObjectHolder;
+
+import vazkii.psi.common.lib.LibEntityNames;
+import vazkii.psi.common.lib.LibResources;
+
+import java.util.List;
+import java.util.Optional;
 
 public class EntitySpellMine extends EntitySpellGrenade {
+	@ObjectHolder(LibResources.PREFIX_MOD + LibEntityNames.SPELL_MINE)
+	public static EntityType<EntitySpellMine> TYPE;
 
 	boolean triggered = false;
 
-	public EntitySpellMine(World worldIn) {
-		super(worldIn);
+	public EntitySpellMine(EntityType<? extends ThrowableEntity> type, World worldIn) {
+		super(type, worldIn);
 	}
 
 	public EntitySpellMine(World worldIn, LivingEntity throwerIn) {
-		super(worldIn, throwerIn);
+		super(TYPE, worldIn, throwerIn);
 	}
 
 	@Override
-	public void onUpdate() {
-		super.onUpdate();
+	public void tick() {
+		super.tick();
 
-		List<LivingEntity> entities = getEntityWorld().getEntitiesWithinAABB(LivingEntity.class, getEntityBoundingBox().grow(1, 1, 1));
-		LivingEntity thrower = getThrower();
-		if(thrower != null)
+		List<LivingEntity> entities = getEntityWorld().getEntitiesWithinAABB(LivingEntity.class, getBoundingBox().grow(1, 1, 1));
+		Entity thrower = getOwner();
+		if (thrower != null && ticksExisted < 30) {
 			entities.remove(thrower);
+		}
 
-		if(!entities.isEmpty())
+		if (!entities.isEmpty()) {
+			if (!triggered) {
+				playSound(SoundEvents.BLOCK_STONE_PRESSURE_PLATE_CLICK_ON, 0.5F, 0.6F);
+			}
 			triggered = true;
-		else if(triggered)
+			dataManager.set(ATTACKTARGET_UUID, Optional.of(entities.get(0).getUniqueID()));
+		} else if (triggered) {
 			doExplosion();
+		}
 	}
 
 	@Override
